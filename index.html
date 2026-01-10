@@ -40,10 +40,13 @@
     .hint { font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem; }
     @media (max-width: 960px) { main { flex-direction: column; } textarea { min-height: 320px; } }
 
-    /* ===== 顏色設定（依你目前需求）===== */
     .column:first-child h2 { color: #DCFF5C; }
     .column:last-child h2 { color: #FE86E8; }
     #yamlOutput { color: #e5e7eb; }
+
+    .locked input, .locked select { opacity: 0.75; }
+
+    .label-h1-color { font-weight: 700; } /* [web:313] */
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -56,7 +59,6 @@
   </header>
 
   <main>
-    <!-- Left -->
     <section class="column">
       <div class="card">
         <h2>基本設定 <span>metadata</span></h2>
@@ -105,7 +107,7 @@
             <option value="簡約優雅風">簡約優雅風</option>
             <option value="__custom__">其他（自行輸入）</option>
           </select>
-          <small>切換主題會自動帶入配色/字體/條列上限，並同步更新 style_summary。</small>
+          <small>theme 的主色/強調色為配色 tokens；文字顏色由 typography 決定或選擇跟隨主題。</small>
           <div id="themeStyleCustomWrap" style="display:none; margin-top:0.5rem;">
             <input type="text" id="themeStyleCustom" placeholder="請輸入主題風格（中文）" />
           </div>
@@ -120,7 +122,7 @@
         </div>
 
         <div class="field-group">
-          <label>主色 primary_color</label>
+          <label>主色 primary_color（按鈕、圖表、重點框線、連結等；不直接等於文字顏色）</label>
           <div class="color-row">
             <input type="color" id="primaryColorPicker" value="#373399" aria-label="主色選擇器">
             <input type="text" id="primaryColor" value="#373399" placeholder="#rrggbb" />
@@ -129,7 +131,7 @@
         </div>
 
         <div class="field-group">
-          <label>強調色 accent_color</label>
+          <label>強調色 accent_color（按鈕、圖表、重點框線、連結等；不直接等於文字顏色）</label>
           <div class="color-row">
             <input type="color" id="accentColorPicker" value="#10b981" aria-label="強調色選擇器">
             <input type="text" id="accentColor" value="#10b981" placeholder="#rrggbb" />
@@ -141,23 +143,145 @@
         <h2>字體與排版 <span>typography</span></h2>
 
         <div class="field-group">
-          <label>標題字體 (typography.heading_font)</label>
-          <input type="text" id="headingFont" value="Arial, sans-serif" />
+          <label>文字顏色跟隨主題</label>
+          <select id="textColorPolicy">
+            <option value="follow" selected>跟隨主題（H1=主色、H2=強調色、內文=依模式）</option>
+            <option value="custom">自訂（H1/H2/內文字色獨立設定）</option>
+          </select>
         </div>
 
-        <div class="field-group">
-          <label>內文字體 (typography.body_font)</label>
-          <input type="text" id="bodyFont" value="Arial, sans-serif" />
-        </div>
-
-        <div class="inline">
-          <div class="field-group">
-            <label>主標題基準字級 (px)</label>
-            <input type="number" id="headingSize" value="36" />
+        <div id="typographyCustomBlock">
+          <div class="inline">
+            <div class="field-group">
+              <label>第 1 階層（H1）字體</label>
+              <select id="level1Font">
+                <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
+                <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
+                <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
+                <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
+                <option value="Times New Roman, serif">Times New Roman (serif)</option>
+                <option value="Georgia, serif">Georgia (serif)</option>
+                <option value="Courier New, monospace">Courier New (monospace)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>第 1 階層（H1）粗細</label>
+              <select id="level1Weight">
+                <option value="normal" selected>非粗體（normal）</option>
+                <option value="bold">粗體（bold）</option>
+              </select>
+              <small>font-weight 支援 normal / bold 關鍵字。</small>
+            </div>
           </div>
-          <div class="field-group">
-            <label>內文字級 (px)</label>
-            <input type="number" id="bodySize" value="18" />
+
+          <div class="inline">
+            <div class="field-group">
+              <label class="label-h1-color">第 1 階層（H1）文字顏色</label>
+              <div class="color-row">
+                <input type="color" id="level1ColorPicker" value="#111827" aria-label="H1 顏色">
+                <input type="text" id="level1Color" value="#111827" placeholder="#rrggbb" />
+                <div class="color-swatch" id="level1Swatch"></div>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>第 1 階層（H1）字級 (px)</label>
+              <select id="level1Size">
+                <option value="32">32</option>
+                <option value="36" selected>36</option>
+                <option value="40">40</option>
+                <option value="44">44</option>
+                <option value="48">48</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="inline">
+            <div class="field-group">
+              <label>第 2 階層（H2）字體</label>
+              <select id="level2Font">
+                <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
+                <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
+                <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
+                <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
+                <option value="Times New Roman, serif">Times New Roman (serif)</option>
+                <option value="Georgia, serif">Georgia (serif)</option>
+                <option value="Courier New, monospace">Courier New (monospace)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>第 2 階層（H2）粗細</label>
+              <select id="level2Weight">
+                <option value="normal" selected>非粗體（normal）</option>
+                <option value="bold">粗體（bold）</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="inline">
+            <div class="field-group">
+              <label>第 2 階層（H2）文字顏色</label>
+              <div class="color-row">
+                <input type="color" id="level2ColorPicker" value="#111827" aria-label="H2 顏色">
+                <input type="text" id="level2Color" value="#111827" placeholder="#rrggbb" />
+                <div class="color-swatch" id="level2Swatch"></div>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>第 2 階層（H2）字級 (px)</label>
+              <select id="level2Size">
+                <option value="20">20</option>
+                <option value="22">22</option>
+                <option value="24" selected>24</option>
+                <option value="28">28</option>
+                <option value="32">32</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="inline">
+            <div class="field-group">
+              <label>內文文字字體</label>
+              <select id="bodyTextFont">
+                <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
+                <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+                <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
+                <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
+                <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
+                <option value="Times New Roman, serif">Times New Roman (serif)</option>
+                <option value="Georgia, serif">Georgia (serif)</option>
+                <option value="Courier New, monospace">Courier New (monospace)</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>內文粗細</label>
+              <select id="bodyTextWeight">
+                <option value="normal" selected>非粗體（normal）</option>
+                <option value="bold">粗體（bold）</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="inline">
+            <div class="field-group">
+              <label>內文文字顏色</label>
+              <div class="color-row">
+                <input type="color" id="bodyTextColorPicker" value="#111827" aria-label="內文顏色">
+                <input type="text" id="bodyTextColor" value="#111827" placeholder="#rrggbb" />
+                <div class="color-swatch" id="bodyTextSwatch"></div>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>內文字級 (px)</label>
+              <select id="bodyTextSize">
+                <option value="14">14</option>
+                <option value="16">16</option>
+                <option value="18" selected>18</option>
+                <option value="20">20</option>
+                <option value="22">22</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -213,7 +337,7 @@
           <div class="field-group">
             <label>檔名前綴</label>
             <input type="text" id="filePrefix" value="YAML" />
-            <small>例：YAML-2026-01-10_11-36-00.yaml</small>
+            <small>例：YAML-2026-01-10_17-55-00.yaml</small>
           </div>
           <div class="field-group">
             <label>時間格式</label>
@@ -246,7 +370,6 @@
       </div>
     </section>
 
-    <!-- Right -->
     <section class="column">
       <div class="card">
         <h2>YAML 提示詞輸出 <span>可複製貼入 AI 系統</span></h2>
@@ -289,42 +412,92 @@
       }
     }
 
-    function syncColorFromPicker(pickerId, textId, swatchId) {
-      const picker = document.getElementById(pickerId);
+    function setColorValue(textId, pickerId, swatchId, hex) {
+      const normalized = normalizeHex(hex) || "#000000";
       const text = document.getElementById(textId);
+      const picker = document.getElementById(pickerId);
       const swatch = document.getElementById(swatchId);
-      const hex = normalizeHex(picker.value) || "#000000";
-      text.value = hex;
-      swatch.style.background = hex;
-      generateYaml();
+      if (text) text.value = normalized;
+      if (picker) picker.value = normalized;
+      if (swatch) swatch.style.background = normalized;
     }
 
-    function syncColorFromText(textId, pickerId, swatchId) {
-      const text = document.getElementById(textId);
-      const picker = document.getElementById(pickerId);
-      const swatch = document.getElementById(swatchId);
-      const hex = normalizeHex(text.value);
-      if (hex) {
-        picker.value = hex;
-        swatch.style.background = hex;
-      } else {
-        swatch.style.background = "#000000";
+    function setTypographyColorInputsDisabled(disabled) {
+      const ids = [
+        "level1Color","level1ColorPicker",
+        "level2Color","level2ColorPicker",
+        "bodyTextColor","bodyTextColorPicker"
+      ];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+      });
+    }
+
+    function applyTextPolicyIfFollow() {
+      const policy = document.getElementById("textColorPolicy").value;
+      const customBlock = document.getElementById("typographyCustomBlock");
+
+      if (policy !== "follow") {
+        customBlock.classList.remove("locked");
+        setTypographyColorInputsDisabled(false);
+        return;
       }
-      generateYaml();
+
+      const mode = document.getElementById("mode").value;
+      const primary = normalizeHex(document.getElementById("primaryColor").value) || "#000000";
+      const accent = normalizeHex(document.getElementById("accentColor").value) || "#000000";
+      const body = (mode === "dark") ? "#e5e7eb" : "#111827";
+
+      setColorValue("level1Color", "level1ColorPicker", "level1Swatch", primary);
+      setColorValue("level2Color", "level2ColorPicker", "level2Swatch", accent);
+      setColorValue("bodyTextColor", "bodyTextColorPicker", "bodyTextSwatch", body);
+
+      customBlock.classList.add("locked");
+      setTypographyColorInputsDisabled(true);
+    }
+
+    function bindColorTriad(pickerId, textId, swatchId) {
+      const picker = document.getElementById(pickerId);
+      const text = document.getElementById(textId);
+      const swatch = document.getElementById(swatchId);
+
+      function syncFromPicker() {
+        const hex = normalizeHex(picker.value) || "#000000";
+        text.value = hex;
+        swatch.style.background = hex;
+        applyTextPolicyIfFollow();
+        generateYaml();
+      }
+
+      function syncFromText() {
+        const hex = normalizeHex(text.value);
+        if (hex) {
+          picker.value = hex;
+          swatch.style.background = hex;
+        } else {
+          swatch.style.background = "#000000";
+        }
+        applyTextPolicyIfFollow();
+        generateYaml();
+      }
+
+      picker.addEventListener("input", syncFromPicker);
+      text.addEventListener("input", syncFromText);
+      swatch.style.background = normalizeHex(text.value) || "#000000";
     }
 
     const THEME_PRESETS = {
-      /* 已修改：現代科技風 -> mode light, primary #373399 */
-      "現代科技風": { mode: "light", primary: "#373399", accent: "#10b981", headingFont: "Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 5 },
-      "極簡風":     { mode: "light", primary: "#111827", accent: "#2563eb", headingFont: "Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 4 },
-      "商務專業風": { mode: "light", primary: "#1d4ed8", accent: "#64748b", headingFont: "Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 4 },
-      "暗黑高對比風": { mode: "dark", primary: "#fbbf24", accent: "#38bdf8", headingFont: "Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 4 },
-      "教育課程風": { mode: "light", primary: "#0f766e", accent: "#f59e0b", headingFont: "Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 5 },
-      "資訊圖表風": { mode: "light", primary: "#0ea5e9", accent: "#f97316", headingFont: "Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 4 },
-      "新創提案風": { mode: "dark",  primary: "#a78bfa", accent: "#fbbf24", headingFont: "Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 3 },
-      "雜誌排版風": { mode: "light", primary: "#111827", accent: "#ef4444", headingFont: "Georgia, serif", bodyFont: "Arial, sans-serif", maxBullets: 4 },
-      "大字標題風": { mode: "dark",  primary: "#ffffff", accent: "#22c55e", headingFont: "Arial Black, Arial, sans-serif", bodyFont: "Arial, sans-serif", maxBullets: 3 },
-      "簡約優雅風": { mode: "light", primary: "#0f172a", accent: "#10b981", headingFont: "Georgia, serif", bodyFont: "Arial, sans-serif", maxBullets: 4 }
+      "現代科技風": { mode: "light", primary: "#373399", accent: "#10b981", maxBullets: 5 },
+      "極簡風":     { mode: "light", primary: "#111827", accent: "#2563eb", maxBullets: 4 },
+      "商務專業風": { mode: "light", primary: "#1d4ed8", accent: "#64748b", maxBullets: 4 },
+      "暗黑高對比風": { mode: "dark", primary: "#fbbf24", accent: "#38bdf8", maxBullets: 4 },
+      "教育課程風": { mode: "light", primary: "#0f766e", accent: "#f59e0b", maxBullets: 5 },
+      "資訊圖表風": { mode: "light", primary: "#0ea5e9", accent: "#f97316", maxBullets: 4 },
+      "新創提案風": { mode: "dark",  primary: "#a78bfa", accent: "#fbbf24", maxBullets: 3 },
+      "雜誌排版風": { mode: "light", primary: "#111827", accent: "#ef4444", maxBullets: 4 },
+      "大字標題風": { mode: "dark",  primary: "#ffffff", accent: "#22c55e", maxBullets: 3 },
+      "簡約優雅風": { mode: "light", primary: "#0f172a", accent: "#10b981", maxBullets: 4 }
     };
 
     const STYLE_SUMMARY_BY_THEME = {
@@ -348,9 +521,7 @@
 
     function getStyleSummaryValue() {
       const preset = document.getElementById("styleSummaryPreset").value;
-      if (preset === "__custom__") {
-        return document.getElementById("styleSummaryCustom").value.trim();
-      }
+      if (preset === "__custom__") return document.getElementById("styleSummaryCustom").value.trim();
       return preset;
     }
 
@@ -370,8 +541,13 @@
         selectEl.value = "__custom__";
         customEl.value = summaryText || "";
       }
-
       syncStyleSummaryUI();
+    }
+
+    function getThemeStyleValue() {
+      const preset = document.getElementById("themeStylePreset").value;
+      if (preset === "__custom__") return document.getElementById("themeStyleCustom").value.trim();
+      return preset;
     }
 
     function applyThemePreset(styleName) {
@@ -379,8 +555,6 @@
       if (!preset) return;
 
       document.getElementById("mode").value = preset.mode;
-      document.getElementById("headingFont").value = preset.headingFont;
-      document.getElementById("bodyFont").value = preset.bodyFont;
       document.getElementById("maxBullets").value = String(preset.maxBullets);
 
       setColorAll("primary", preset.primary);
@@ -389,6 +563,7 @@
       const summary = STYLE_SUMMARY_BY_THEME[styleName];
       if (summary) setStyleSummary(summary);
 
+      applyTextPolicyIfFollow();
       generateYaml();
     }
 
@@ -402,19 +577,19 @@
         applyThemePreset(preset);
         return;
       }
+      applyTextPolicyIfFollow();
       generateYaml();
     }
 
-    function getThemeStyleValue() {
-      const preset = document.getElementById("themeStylePreset").value;
-      if (preset === "__custom__") {
-        return document.getElementById("themeStyleCustom").value.trim();
-      }
-      return preset;
+    function buildColorUsageGuideline(primary, accent) {
+      const p = normalizeHex(primary) || primary || "";
+      const a = normalizeHex(accent) || accent || "";
+      return `primary_color ${p} 用於按鈕、圖表、重點框線、連結等互動/強調元素；accent_color ${a} 用於次要互動/提示強調；兩者不直接等於文字顏色（文字顏色以 typography 為準）。`;
     }
 
     function generateYaml() {
       syncStyleSummaryUI();
+      applyTextPolicyIfFollow();
 
       const name = document.getElementById("name").value;
       const author = document.getElementById("author").value;
@@ -424,14 +599,25 @@
 
       const themeStyle = getThemeStyleValue();
       const mode = document.getElementById("mode").value;
-
       const primaryColor = document.getElementById("primaryColor").value;
       const accentColor = document.getElementById("accentColor").value;
 
-      const headingFont = document.getElementById("headingFont").value;
-      const bodyFont = document.getElementById("bodyFont").value;
-      const headingSize = document.getElementById("headingSize").value;
-      const bodySize = document.getElementById("bodySize").value;
+      const policy = document.getElementById("textColorPolicy").value;
+
+      const level1Font = document.getElementById("level1Font").value;
+      const level1Weight = document.getElementById("level1Weight").value;
+      const level1Color = document.getElementById("level1Color").value;
+      const level1Size = document.getElementById("level1Size").value;
+
+      const level2Font = document.getElementById("level2Font").value;
+      const level2Weight = document.getElementById("level2Weight").value;
+      const level2Color = document.getElementById("level2Color").value;
+      const level2Size = document.getElementById("level2Size").value;
+
+      const bodyTextFont = document.getElementById("bodyTextFont").value;
+      const bodyTextWeight = document.getElementById("bodyTextWeight").value;
+      const bodyTextColor = document.getElementById("bodyTextColor").value;
+      const bodyTextSize = document.getElementById("bodyTextSize").value;
 
       const maxBullets = document.getElementById("maxBullets").value;
       const maxWords = document.getElementById("maxWords").value;
@@ -439,6 +625,8 @@
 
       const styleSummary = getStyleSummaryValue();
       const densityRule = document.getElementById("densityRule").value;
+
+      const colorUsageGuideline = buildColorUsageGuideline(primaryColor, accentColor);
 
       const yaml =
 `metadata:
@@ -455,10 +643,19 @@ theme:
   accent_color: ${escapeYamlString(accentColor)}
 
 typography:
-  heading_font: ${escapeYamlString(headingFont)}
-  body_font: ${escapeYamlString(bodyFont)}
-  heading_base_size: ${escapeYamlString(headingSize)}
-  body_base_size: ${escapeYamlString(bodySize)}
+  text_color_policy: ${escapeYamlString(policy)}
+  level1_font: ${escapeYamlString(level1Font)}
+  level1_weight: ${escapeYamlString(level1Weight)}
+  level1_color: ${escapeYamlString(level1Color)}
+  level1_size: ${escapeYamlString(level1Size)}
+  level2_font: ${escapeYamlString(level2Font)}
+  level2_weight: ${escapeYamlString(level2Weight)}
+  level2_color: ${escapeYamlString(level2Color)}
+  level2_size: ${escapeYamlString(level2Size)}
+  body_text_font: ${escapeYamlString(bodyTextFont)}
+  body_text_weight: ${escapeYamlString(bodyTextWeight)}
+  body_text_color: ${escapeYamlString(bodyTextColor)}
+  body_text_size: ${escapeYamlString(bodyTextSize)}
 
 layout:
   slide_width: 960
@@ -476,12 +673,12 @@ content_rules:
 guidelines:
   style_summary: ${escapeYamlString(styleSummary)}
   content_density_rule: ${escapeYamlString(densityRule)}
+  color_usage_guideline: ${escapeYamlString(colorUsageGuideline)}
 `;
       document.getElementById("yamlOutput").value = yaml;
     }
 
     function pad2(n) { return String(n).padStart(2, "0"); }
-
     function formatTimestamp(formatKey) {
       const d = new Date();
       const y = d.getFullYear();
@@ -567,11 +764,22 @@ guidelines:
       document.getElementById("themeStyleCustom").value = "";
       document.getElementById("themeStyleCustomWrap").style.display = "none";
 
-      document.getElementById("headingSize").value = "36";
-      document.getElementById("bodySize").value = "18";
+      document.getElementById("textColorPolicy").value = "follow";
+
+      document.getElementById("level1Font").value = "Arial, sans-serif";
+      document.getElementById("level1Weight").value = "normal";
+      document.getElementById("level1Size").value = "36";
+
+      document.getElementById("level2Font").value = "Arial, sans-serif";
+      document.getElementById("level2Weight").value = "normal";
+      document.getElementById("level2Size").value = "24";
+
+      document.getElementById("bodyTextFont").value = "Arial, sans-serif";
+      document.getElementById("bodyTextWeight").value = "normal";
+      document.getElementById("bodyTextSize").value = "18";
+
       document.getElementById("maxWords").value = "20";
       document.getElementById("maxLines").value = "8";
-
       document.getElementById("densityRule").value =
         "每張投影片僅包含一個主要概念，條列不超過上限，必要時拆成多張。";
 
@@ -589,7 +797,6 @@ guidelines:
       ta.focus();
       ta.select();
       ta.setSelectionRange(0, 999999);
-
       const ok = document.execCommand("copy");
       const hint = document.getElementById("copyHint");
       hint.textContent = ok ? "已複製到剪貼簿" : "無法自動複製，請手動選取";
@@ -601,47 +808,44 @@ guidelines:
       document.getElementById("btnReset").addEventListener("click", resetForm);
       document.getElementById("btnCopy").addEventListener("click", copyYaml);
 
-      const inputIds = [
-        "name","author","description","version","language",
-        "primaryColor","accentColor","headingFont","bodyFont",
-        "headingSize","bodySize","maxBullets","maxWords","maxLines","densityRule",
-        "themeStyleCustom","styleSummaryCustom",
-        "filePrefix","timestampFormat","downloadFormat","pdfFontSize"
-      ];
-      inputIds.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener("input", generateYaml);
-        el.addEventListener("change", generateYaml);
-      });
-
       document.getElementById("themeStylePreset").addEventListener("change", onThemeStyleChange);
 
       const ssp = document.getElementById("styleSummaryPreset");
       ssp.addEventListener("change", () => { syncStyleSummaryUI(); generateYaml(); });
       ssp.addEventListener("input",  () => { syncStyleSummaryUI(); generateYaml(); });
 
-      document.getElementById("primaryColorPicker").addEventListener("input", () =>
-        syncColorFromPicker("primaryColorPicker", "primaryColor", "primarySwatch")
-      );
-      document.getElementById("accentColorPicker").addEventListener("input", () =>
-        syncColorFromPicker("accentColorPicker", "accentColor", "accentSwatch")
-      );
-      document.getElementById("primaryColor").addEventListener("input", () =>
-        syncColorFromText("primaryColor", "primaryColorPicker", "primarySwatch")
-      );
-      document.getElementById("accentColor").addEventListener("input", () =>
-        syncColorFromText("accentColor", "accentColorPicker", "accentSwatch")
-      );
+      bindColorTriad("primaryColorPicker","primaryColor","primarySwatch");
+      bindColorTriad("accentColorPicker","accentColor","accentSwatch");
 
-      document.getElementById("primarySwatch").style.background =
-        normalizeHex(document.getElementById("primaryColor").value) || "#000000";
-      document.getElementById("accentSwatch").style.background =
-        normalizeHex(document.getElementById("accentColor").value) || "#000000";
+      bindColorTriad("level1ColorPicker","level1Color","level1Swatch");
+      bindColorTriad("level2ColorPicker","level2Color","level2Swatch");
+      bindColorTriad("bodyTextColorPicker","bodyTextColor","bodyTextSwatch");
 
-      // init：依目前 select 的預設（現代科技風）套用 preset（會把 mode/primary 設為新預設）
+      const ids = [
+        "name","author","description","version","language",
+        "themeStyleCustom","styleSummaryCustom",
+        "level1Font","level1Weight","level1Size",
+        "level2Font","level2Weight","level2Size",
+        "bodyTextFont","bodyTextWeight","bodyTextSize",
+        "maxBullets","maxWords","maxLines","densityRule",
+        "filePrefix","timestampFormat","downloadFormat","pdfFontSize",
+        "textColorPolicy"
+      ];
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener("input", generateYaml);
+        el.addEventListener("change", generateYaml);
+      });
+
+      document.getElementById("mode").addEventListener("change", () => {
+        applyTextPolicyIfFollow();
+        generateYaml();
+      }); /* [web:95] */
+
       onThemeStyleChange();
       syncStyleSummaryUI();
+      applyTextPolicyIfFollow();
       generateYaml();
     });
   </script>
