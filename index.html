@@ -3,20 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>簡報風格 YAML 提示詞產生器</title>
+  <title>簡報風格 YAML 提示詞產生器（嚴格版 v4.2-final）</title>
   <style>
     body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; padding: 0; background: #0f172a; color: #e5e7eb; }
     header { padding: 1.5rem 2rem; background: #020617; border-bottom: 1px solid #1f2933; }
-    header h1 { margin: 0; font-size: 1.5rem; color: #38bdf8; }
+    header h1 { margin: 0; font-size: 1.35rem; color: #38bdf8; }
     header p { margin: 0.25rem 0 0; font-size: 0.9rem; color: #9ca3af; }
     main { display: flex; gap: 1.5rem; padding: 1.5rem 2rem 2rem; box-sizing: border-box; }
     .column { flex: 1; min-width: 0; }
     .card { background: #020617; border-radius: 0.75rem; padding: 1.25rem 1.5rem; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.9); border: 1px solid #1f2937; box-sizing: border-box; }
-    h2 { margin-top: 0; font-size: 1.2rem; color: #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    h2 { margin-top: 0; font-size: 1.1rem; color: #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
     h2 span { font-size: 0.75rem; color: #9ca3af; font-weight: 400; }
+
+    /* v4.2-final: title colors */
+    .section-title { color: #d0ff6b; }
+    .yaml-title { color: #ff47d7; }
+    .yaml-title span { color: inherit; } /* 最終版：右側 header span 同步變色 */
+
     .field-group { margin-bottom: 1rem; }
     .field-group label { display: block; font-size: 0.9rem; color: #cbd5e1; margin-bottom: 0.25rem; }
-    .field-group small { display: block; font-size: 0.75rem; color: #6b7280; margin-top: 0.15rem; }
+    .field-group small { display: block; font-size: 0.75rem; color: #6b7280; margin-top: 0.15rem; line-height: 1.35; }
     input[type="text"], input[type="number"], select, textarea {
       width: 100%; box-sizing: border-box; padding: 0.45rem 0.55rem; border-radius: 0.5rem;
       border: 1px solid #374151; background: #020617; color: #e5e7eb; font-size: 0.9rem; outline: none;
@@ -24,28 +30,22 @@
     input[type="text"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
       border-color: #38bdf8; box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
     }
-    textarea { min-height: 480px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; white-space: pre; }
+    textarea { min-height: 600px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; white-space: pre; }
     .inline { display: flex; gap: 0.75rem; }
     .inline .field-group { flex: 1; }
-    .badge-fixed { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.7rem; background: #1e293b; color: #9ca3af; border: 1px solid #334155; margin-left: 0.3rem; }
     .color-row { display: grid; grid-template-columns: 48px 1fr 64px; gap: 0.5rem; align-items: center; }
     input[type="color"]{ width: 48px; height: 36px; padding: 0; border-radius: 0.5rem; border: 1px solid #374151; background: transparent; cursor: pointer; }
     .color-swatch { width: 64px; height: 36px; border-radius: 0.5rem; border: 1px solid #374151; background: #000; }
     .actions { margin-top: 0.75rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    button { padding: 0.4rem 0.85rem; border-radius: 999px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.25rem; }
+    button { padding: 0.4rem 0.85rem; border-radius: 999px; border: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
     .btn-primary { background: #38bdf8; color: #020617; }
     .btn-primary:hover { background: #0ea5e9; }
     .btn-secondary { background: #111827; color: #e5e7eb; border: 1px solid #374151; }
     .btn-secondary:hover { background: #1f2937; }
     .hint { font-size: 0.8rem; color: #6b7280; margin-top: 0.25rem; }
-    @media (max-width: 960px) { main { flex-direction: column; } textarea { min-height: 320px; } }
-
-    .column:first-child h2 { color: #DCFF5C; }
-    .column:last-child h2 { color: #FE86E8; }
-    #yamlOutput { color: #e5e7eb; }
-
-    .locked input, .locked select { opacity: 0.75; }
-    .label-h1-color { font-weight: 700; }
+    .warn { font-size: 0.8rem; color: #fbbf24; margin: 0.25rem 0 0; line-height: 1.35; }
+    .section-note { font-size: 0.8rem; color: #9ca3af; margin: 0.25rem 0 0.75rem; line-height: 1.35; }
+    @media (max-width: 960px) { main { flex-direction: column; } textarea { min-height: 380px; } }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -53,14 +53,14 @@
 
 <body>
 <header>
-  <h1>簡報風格 YAML 提示詞產生器</h1>
-  <p>左側即時更新 → 右側 YAML；可下載含日期時間的 TXT / YAML / PDF</p>
+  <h1>簡報風格 YAML 提示詞產生器（嚴格版 v4.2-final）</h1>
+  <p>built_in 文字配色：不輸出 h1/h2/body 顏色欄位，改輸出 computed_preview；推薦風格完整恢復（含其他自行輸入）</p>
 </header>
 
 <main>
   <section class="column">
     <div class="card">
-      <h2>基本設定 <span>metadata</span></h2>
+      <h2 class="section-title">基本設定 <span>metadata</span></h2>
 
       <div class="field-group">
         <label>簡報名稱 (metadata.name)</label>
@@ -79,7 +79,7 @@
 
       <div class="inline">
         <div class="field-group">
-          <label>版本 <span class="badge-fixed">固定欄位</span></label>
+          <label>版本 (metadata.version)</label>
           <input type="text" id="version" value="1.0" />
         </div>
         <div class="field-group">
@@ -89,15 +89,15 @@
       </div>
 
       <hr style="border-color:#1f2937; margin: 1rem 0;" />
-      <h2>主題與配色 <span>theme</span></h2>
+      <h2 class="section-title">需求與風格 <span>guidelines</span></h2>
 
       <div class="field-group">
         <label>需求類型（guidelines.requirement_type）</label>
         <select id="requirementType">
-          <option value="行銷懶人包" selected>行銷懶人包</option>
+          <option value="行銷懶人包">行銷懶人包</option>
           <option value="數據分析報告">數據分析報告</option>
           <option value="流程邏輯說明">流程邏輯說明</option>
-          <option value="教育知識科普">教育知識科普</option>
+          <option value="教育知識科普" selected>教育知識科普</option>
           <option value="專業研究報告">專業研究報告</option>
           <option value="歷史演進時間">歷史演進時間</option>
           <option value="創意發想筆記">創意發想筆記</option>
@@ -107,17 +107,18 @@
 
       <div class="field-group">
         <label>推薦風格（guidelines.recommended_style）</label>
-        <select id="recommendedStyle">
-          <option value="可愛粉嫩風格" selected>可愛粉嫩風格</option>
-          <option value="推薦黑板粉筆風格">推薦黑板粉筆風格</option>
-          <option value="手繪塗鴉風格">手繪塗鴉風格</option>
-          <option value="企業曼非斯風格">企業曼非斯風格</option>
-          <option value="白板馬克筆風格">白板馬克筆風格</option>
-          <option value="數據儀表板風">數據儀表板風</option>
-          <option value="復古報紙風格">復古報紙風格</option>
-          <option value="盲盒公仔風">盲盒公仔風</option>
-          <option value="手寫筆跡">手寫筆跡</option>
-        </select>
+        <select id="recommendedStyle"></select>
+        <small>固定調色/可品牌色會自動分組；選「其他（自行輸入）」可自行填寫名稱與定義。</small>
+      </div>
+
+      <div class="field-group" id="customStyleBlock" hidden>
+        <label>其他（自行輸入）：風格名稱</label>
+        <input type="text" id="customStyleName" value="其他：自訂風格" />
+        <small>此名稱會成為 guidelines.recommended_style 與 theme.style。</small>
+
+        <label style="margin-top:0.6rem;">其他（自行輸入）：風格定義</label>
+        <input type="text" id="customStyleDefinition" value="請用一句話描述此風格的視覺語言、構圖與適用情境。" />
+        <small>此定義會被寫入 recommended_style_definition，避免 AI 只看名稱誤解。</small>
       </div>
 
       <div class="field-group">
@@ -135,105 +136,90 @@
       <div class="field-group">
         <label>推薦設定套用策略（guidelines.recommendation_apply_policy）</label>
         <select id="recommendationApplyPolicy">
-          <option value="manual" selected>manual（不自動改 theme/mode/colors）</option>
-          <option value="apply_safe">apply_safe（僅調整不衝突的版面/規則）</option>
-          <option value="apply_full">apply_full（允許覆蓋部分主題設定；慎用）</option>
+          <option value="manual" selected>manual（不自動調整任何內容/配色/佈局參數）</option>
+          <option value="apply_safe">apply_safe（只調整不衝突的內容密度/版面規則，不動配色）</option>
+          <option value="apply_full">apply_full（可依風格補齊安全預設；不覆寫你已提供的主色/強調色）</option>
         </select>
-      </div>
-
-      <div class="field-group">
-        <label>主題風格 (theme.style)</label>
-        <select id="themeStylePreset">
-          <option value="現代科技風" selected>現代科技風</option>
-          <option value="極簡風">極簡風</option>
-          <option value="商務專業風">商務專業風</option>
-          <option value="暗黑高對比風">暗黑高對比風</option>
-          <option value="教育課程風">教育課程風</option>
-          <option value="資訊圖表風">資訊圖表風</option>
-          <option value="新創提案風">新創提案風</option>
-          <option value="雜誌排版風">雜誌排版風</option>
-          <option value="大字標題風">大字標題風</option>
-          <option value="簡約優雅風">簡約優雅風</option>
-          <option value="__custom__">其他（自行輸入）</option>
-        </select>
-        <div id="themeStyleCustomWrap" style="display:none; margin-top:0.5rem;">
-          <input type="text" id="themeStyleCustom" placeholder="請輸入主題風格（中文）" />
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label>色彩模式 (theme.mode)</label>
-        <select id="mode">
-          <option value="dark">深色</option>
-          <option value="light" selected>淺色</option>
-        </select>
-      </div>
-
-      <div class="field-group">
-        <label>主色 primary_color（按鈕、圖表、重點框線、連結等；不直接等於文字顏色）</label>
-        <div class="color-row">
-          <input type="color" id="primaryColorPicker" value="#373399" aria-label="主色選擇器">
-          <input type="text" id="primaryColor" value="#373399" placeholder="#rrggbb" />
-          <div class="color-swatch" id="primarySwatch"></div>
-        </div>
-      </div>
-
-      <div class="field-group">
-        <label>強調色 accent_color（按鈕、圖表、重點框線、連結等；不直接等於文字顏色）</label>
-        <div class="color-row">
-          <input type="color" id="accentColorPicker" value="#10b981" aria-label="強調色選擇器">
-          <input type="text" id="accentColor" value="#10b981" placeholder="#rrggbb" />
-          <div class="color-swatch" id="accentSwatch"></div>
-        </div>
       </div>
 
       <hr style="border-color:#1f2937; margin: 1rem 0;" />
-      <h2>字體與排版 <span>typography</span></h2>
-
-      <div class="field-group">
-        <label>文字顏色跟隨主題（typography.text_color_policy）</label>
-        <select id="textColorPolicy">
-          <option value="follow" selected>跟隨主題（H1=主色、H2=強調色、內文=依模式）</option>
-          <option value="custom">自訂（H1/H2/內文字色獨立設定）</option>
-        </select>
+      <h2 class="section-title">品牌色設定 <span>theme</span></h2>
+      <div class="section-note">
+        只有「可品牌色」風格才會顯示此區塊；固定調色風格會使用內建預設。
       </div>
 
-      <div id="typographyCustomBlock">
-        <div class="inline">
-          <div class="field-group">
-            <label>第 1 階層（H1）字體</label>
-            <select id="level1Font">
-              <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
-              <option value="Helvetica, Arial, sans-serif">Helvetica</option>
-              <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
-              <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
-              <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
-              <option value="Times New Roman, serif">Times New Roman (serif)</option>
-              <option value="Georgia, serif">Georgia (serif)</option>
-              <option value="Courier New, monospace">Courier New (monospace)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label>第 1 階層（H1）粗細</label>
-            <select id="level1Weight">
-              <option value="normal" selected>非粗體（normal）</option>
-              <option value="bold">粗體（bold）</option>
-            </select>
+      <div id="brandColorBlock">
+        <div class="field-group">
+          <label>色彩模式 (theme.mode)</label>
+          <select id="mode">
+            <option value="light" selected>淺色</option>
+            <option value="dark">深色</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label>主色 primary_color</label>
+          <div class="color-row">
+            <input type="color" id="primaryColorPicker" value="#38bdf8" aria-label="主色選擇器">
+            <input type="text" id="primaryColor" value="#38bdf8" placeholder="#rrggbb" />
+            <div class="color-swatch" id="primarySwatch"></div>
           </div>
         </div>
 
+        <div class="field-group">
+          <label>強調色 accent_color</label>
+          <div class="color-row">
+            <input type="color" id="accentColorPicker" value="#fbbf24" aria-label="強調色選擇器">
+            <input type="text" id="accentColor" value="#fbbf24" placeholder="#rrggbb" />
+            <div class="color-swatch" id="accentSwatch"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn" id="brandColorWarn" style="display:none;">
+        目前為固定調色風格：品牌色設定區塊已隱藏，改用風格內建配色。
+      </div>
+
+      <hr style="border-color:#1f2937; margin: 1rem 0;" />
+      <h2 class="section-title">字體與排版 <span>typography</span></h2>
+
+      <div class="field-group">
+        <label>文字顏色策略（typography.text_color_policy）</label>
+        <select id="textColorPolicy">
+          <option value="built_in" selected>風格內建配色（H1/H2/內文隱藏自訂）</option>
+          <option value="custom">Custom（H1/H2/內文完全自訂）</option>
+        </select>
+        <small>嚴格模式：built_in 時 YAML 不輸出 h1_color/h2_color/body_color，改輸出 computed_preview 供檢視。</small>
+      </div>
+
+      <div class="warn" id="typographyBuiltInWarn" hidden>
+        built_in：YAML 不輸出 h1_color/h2_color/body_color；僅在 computed_preview 顯示目前推導值。
+      </div>
+
+      <div id="typographyControls">
         <div class="inline">
           <div class="field-group">
-            <label class="label-h1-color">第 1 階層（H1）文字顏色</label>
-            <div class="color-row">
-              <input type="color" id="level1ColorPicker" value="#111827" aria-label="H1 顏色">
-              <input type="text" id="level1Color" value="#111827" placeholder="#rrggbb" />
-              <div class="color-swatch" id="level1Swatch"></div>
-            </div>
+            <label>H1 字體</label>
+            <select id="h1Font">
+              <option value="Arial, sans-serif" selected>Arial</option>
+              <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
+              <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
+              <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
+              <option value="Times New Roman, serif">Times New Roman</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Courier New, monospace">Courier New</option>
+            </select>
           </div>
           <div class="field-group">
-            <label>第 1 階層（H1）字級 (px)</label>
-            <select id="level1Size">
+            <label>H1 粗細</label>
+            <select id="h1Weight">
+              <option value="bold" selected>bold</option>
+              <option value="normal">normal</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>H1 字級 (px)</label>
+            <select id="h1Size">
               <option value="32">32</option>
               <option value="36" selected>36</option>
               <option value="40">40</option>
@@ -243,41 +229,40 @@
           </div>
         </div>
 
-        <div class="inline">
-          <div class="field-group">
-            <label>第 2 階層（H2）字體</label>
-            <select id="level2Font">
-              <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
-              <option value="Helvetica, Arial, sans-serif">Helvetica</option>
-              <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
-              <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
-              <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
-              <option value="Times New Roman, serif">Times New Roman (serif)</option>
-              <option value="Georgia, serif">Georgia (serif)</option>
-              <option value="Courier New, monospace">Courier New (monospace)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label>第 2 階層（H2）粗細</label>
-            <select id="level2Weight">
-              <option value="normal" selected>非粗體（normal）</option>
-              <option value="bold">粗體（bold）</option>
-            </select>
+        <div class="field-group" id="h1ColorBlock">
+          <label>H1 顏色</label>
+          <div class="color-row">
+            <input type="color" id="h1ColorPicker" value="#111827" aria-label="H1 顏色">
+            <input type="text" id="h1Color" value="#111827" placeholder="#rrggbb" />
+            <div class="color-swatch" id="h1Swatch"></div>
           </div>
         </div>
 
+        <hr style="border-color:#1f2937; margin: 0.75rem 0;" />
+
         <div class="inline">
           <div class="field-group">
-            <label>第 2 階層（H2）文字顏色</label>
-            <div class="color-row">
-              <input type="color" id="level2ColorPicker" value="#111827" aria-label="H2 顏色">
-              <input type="text" id="level2Color" value="#111827" placeholder="#rrggbb" />
-              <div class="color-swatch" id="level2Swatch"></div>
-            </div>
+            <label>H2 字體</label>
+            <select id="h2Font">
+              <option value="Arial, sans-serif" selected>Arial</option>
+              <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
+              <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
+              <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
+              <option value="Times New Roman, serif">Times New Roman</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Courier New, monospace">Courier New</option>
+            </select>
           </div>
           <div class="field-group">
-            <label>第 2 階層（H2）字級 (px)</label>
-            <select id="level2Size">
+            <label>H2 粗細</label>
+            <select id="h2Weight">
+              <option value="bold">bold</option>
+              <option value="normal" selected>normal</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>H2 字級 (px)</label>
+            <select id="h2Size">
               <option value="20">20</option>
               <option value="22">22</option>
               <option value="24" selected>24</option>
@@ -287,41 +272,40 @@
           </div>
         </div>
 
+        <div class="field-group" id="h2ColorBlock">
+          <label>H2 顏色</label>
+          <div class="color-row">
+            <input type="color" id="h2ColorPicker" value="#111827" aria-label="H2 顏色">
+            <input type="text" id="h2Color" value="#111827" placeholder="#rrggbb" />
+            <div class="color-swatch" id="h2Swatch"></div>
+          </div>
+        </div>
+
+        <hr style="border-color:#1f2937; margin: 0.75rem 0;" />
+
         <div class="inline">
           <div class="field-group">
-            <label>內文文字字體</label>
-            <select id="bodyTextFont">
-              <option value="Arial, sans-serif" selected>Arial (sans-serif)</option>
-              <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+            <label>內文字體</label>
+            <select id="bodyFont">
+              <option value="Arial, sans-serif" selected>Arial</option>
               <option value="Segoe UI, Arial, sans-serif">Segoe UI</option>
               <option value="Noto Sans TC, Arial, sans-serif">Noto Sans TC</option>
               <option value="Microsoft JhengHei, Arial, sans-serif">微軟正黑體</option>
-              <option value="Times New Roman, serif">Times New Roman (serif)</option>
-              <option value="Georgia, serif">Georgia (serif)</option>
-              <option value="Courier New, monospace">Courier New (monospace)</option>
+              <option value="Times New Roman, serif">Times New Roman</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="Courier New, monospace">Courier New</option>
             </select>
           </div>
           <div class="field-group">
             <label>內文粗細</label>
-            <select id="bodyTextWeight">
-              <option value="normal" selected>非粗體（normal）</option>
-              <option value="bold">粗體（bold）</option>
+            <select id="bodyWeight">
+              <option value="normal" selected>normal</option>
+              <option value="bold">bold</option>
             </select>
-          </div>
-        </div>
-
-        <div class="inline">
-          <div class="field-group">
-            <label>內文文字顏色</label>
-            <div class="color-row">
-              <input type="color" id="bodyTextColorPicker" value="#111827" aria-label="內文顏色">
-              <input type="text" id="bodyTextColor" value="#111827" placeholder="#rrggbb" />
-              <div class="color-swatch" id="bodyTextSwatch"></div>
-            </div>
           </div>
           <div class="field-group">
             <label>內文字級 (px)</label>
-            <select id="bodyTextSize">
+            <select id="bodySize">
               <option value="14">14</option>
               <option value="16">16</option>
               <option value="18" selected>18</option>
@@ -330,10 +314,19 @@
             </select>
           </div>
         </div>
+
+        <div class="field-group" id="bodyColorBlock">
+          <label>內文顏色</label>
+          <div class="color-row">
+            <input type="color" id="bodyColorPicker" value="#111827" aria-label="內文顏色">
+            <input type="text" id="bodyColor" value="#111827" placeholder="#rrggbb" />
+            <div class="color-swatch" id="bodySwatch"></div>
+          </div>
+        </div>
       </div>
 
       <hr style="border-color:#1f2937; margin: 1rem 0;" />
-      <h2>內容規則 <span>content_rules</span></h2>
+      <h2 class="section-title">內容規則 <span>content_rules</span></h2>
 
       <div class="inline">
         <div class="field-group">
@@ -352,33 +345,12 @@
       </div>
 
       <div class="field-group">
-        <label>風格一句話說明 (guidelines.style_summary)</label>
-        <select id="styleSummaryPreset">
-          <option value="現代科技風格、強調可讀與對比" selected>現代科技風（清晰對比）</option>
-          <option value="極簡風格、留白充足、重點聚焦於關鍵文字">極簡風（大量留白、聚焦重點）</option>
-          <option value="企業簡報風格、版面整齊、資訊層級清楚">商務專業風（規範排版、層級清楚）</option>
-          <option value="資訊圖表風格、以圖示與數據視覺化為主">資訊圖表風（圖示、數據可視化）</option>
-          <option value="大字標題風格、強烈字體層級、少文字高衝擊">大字標題風（強烈字體層級）</option>
-          <option value="扁平化設計、少陰影少裝飾、圖形簡潔">扁平化風（簡潔圖形）</option>
-          <option value="儀表板風格、卡片區塊分明、適合 KPI 與監控數據">儀表板風（KPI 與監控數據）</option>
-          <option value="教學課程風格、逐步引導、重點提示清晰">教學風（逐步引導、重點提示）</option>
-          <option value="產品簡報風格、主打價值主張、搭配大圖與賣點">產品風（價值主張、賣點）</option>
-          <option value="新創募資風格、故事線清晰、結論導向">新創募資風（故事線、結論導向）</option>
-          <option value="__custom__">其他（自行輸入）</option>
-        </select>
-
-        <div id="styleSummaryCustomWrap" style="display:none; margin-top:0.5rem;">
-          <input type="text" id="styleSummaryCustom" placeholder="請輸入你的風格一句話說明" />
-        </div>
-      </div>
-
-      <div class="field-group">
         <label>內容密度規則 (guidelines.content_density_rule)</label>
         <input type="text" id="densityRule" value="每張投影片僅包含一個主要概念，條列不超過上限，必要時拆成多張。" />
       </div>
 
       <hr style="border-color:#1f2937; margin: 1rem 0;" />
-      <h2>下載設定 <span>export</span></h2>
+      <h2 class="section-title">下載設定 <span>export</span></h2>
 
       <div class="inline">
         <div class="field-group">
@@ -418,7 +390,7 @@
 
   <section class="column">
     <div class="card">
-      <h2>YAML 提示詞輸出 <span>可複製貼入 AI 系統</span></h2>
+      <h2 class="yaml-title">YAML 提示詞輸出 <span>可複製貼入 AI 系統</span></h2>
       <textarea id="yamlOutput" readonly></textarea>
       <div class="actions">
         <button class="btn-secondary" type="button" id="btnCopy">複製 YAML</button>
@@ -432,7 +404,7 @@
   function escapeYamlString(str) {
     if (str === null || str === undefined) return '""';
     const s = String(str);
-    if (/[":#\n\r\t]|^\s|\s$/.test(s)) {
+    if (/["\n\r\t:#]|^\s|\s$/.test(s)) {
       return '"' + s.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
     }
     return s;
@@ -440,6 +412,7 @@
 
   function yamlBlockScalar(lines) {
     const safeLines = (lines || []).map(s => String(s ?? "").replace(/\r/g, ""));
+    // YAML literal block scalar: '|' keeps line breaks [web:479]
     return "|\n" + safeLines.map(s => "    " + s).join("\n");
   }
 
@@ -450,20 +423,7 @@
     return m ? ("#" + m[1].toLowerCase()) : null;
   }
 
-  function setColorAll(kind, hex) {
-    const normalized = normalizeHex(hex) || "#000000";
-    if (kind === "primary") {
-      document.getElementById("primaryColorPicker").value = normalized;
-      document.getElementById("primaryColor").value = normalized;
-      document.getElementById("primarySwatch").style.background = normalized;
-    } else if (kind === "accent") {
-      document.getElementById("accentColorPicker").value = normalized;
-      document.getElementById("accentColor").value = normalized;
-      document.getElementById("accentSwatch").style.background = normalized;
-    }
-  }
-
-  function setColorValue(textId, pickerId, swatchId, hex) {
+  function setColorTriad(textId, pickerId, swatchId, hex) {
     const normalized = normalizeHex(hex) || "#000000";
     const text = document.getElementById(textId);
     const picker = document.getElementById(pickerId);
@@ -471,41 +431,6 @@
     if (text) text.value = normalized;
     if (picker) picker.value = normalized;
     if (swatch) swatch.style.background = normalized;
-  }
-
-  function setTypographyColorInputsDisabled(disabled) {
-    const ids = [
-      "level1Color","level1ColorPicker",
-      "level2Color","level2ColorPicker",
-      "bodyTextColor","bodyTextColorPicker"
-    ];
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.disabled = disabled;
-    });
-  }
-
-  function applyTextPolicyIfFollow() {
-    const policy = document.getElementById("textColorPolicy").value;
-    const customBlock = document.getElementById("typographyCustomBlock");
-
-    if (policy !== "follow") {
-      customBlock.classList.remove("locked");
-      setTypographyColorInputsDisabled(false);
-      return;
-    }
-
-    const mode = document.getElementById("mode").value;
-    const primary = normalizeHex(document.getElementById("primaryColor").value) || "#000000";
-    const accent = normalizeHex(document.getElementById("accentColor").value) || "#000000";
-    const body = (mode === "dark") ? "#e5e7eb" : "#111827";
-
-    setColorValue("level1Color", "level1ColorPicker", "level1Swatch", primary);
-    setColorValue("level2Color", "level2ColorPicker", "level2Swatch", accent);
-    setColorValue("bodyTextColor", "bodyTextColorPicker", "bodyTextSwatch", body);
-
-    customBlock.classList.add("locked");
-    setTypographyColorInputsDisabled(true);
   }
 
   function bindColorTriad(pickerId, textId, swatchId) {
@@ -517,7 +442,7 @@
       const hex = normalizeHex(picker.value) || "#000000";
       text.value = hex;
       swatch.style.background = hex;
-      applyTextPolicyIfFollow();
+      syncBuiltInTextColorsIfNeeded();
       generateYaml();
     }
 
@@ -529,7 +454,7 @@
       } else {
         swatch.style.background = "#000000";
       }
-      applyTextPolicyIfFollow();
+      syncBuiltInTextColorsIfNeeded();
       generateYaml();
     }
 
@@ -538,129 +463,102 @@
     swatch.style.background = normalizeHex(text.value) || "#000000";
   }
 
-  const THEME_PRESETS = {
-    "現代科技風": { mode: "light", primary: "#373399", accent: "#10b981", maxBullets: 5 },
-    "極簡風":     { mode: "light", primary: "#111827", accent: "#2563eb", maxBullets: 4 },
-    "商務專業風": { mode: "light", primary: "#1d4ed8", accent: "#64748b", maxBullets: 4 },
-    "暗黑高對比風": { mode: "dark", primary: "#fbbf24", accent: "#38bdf8", maxBullets: 4 },
-    "教育課程風": { mode: "light", primary: "#0f766e", accent: "#f59e0b", maxBullets: 5 },
-    "資訊圖表風": { mode: "light", primary: "#0ea5e9", accent: "#f97316", maxBullets: 4 },
-    "新創提案風": { mode: "dark",  primary: "#a78bfa", accent: "#fbbf24", maxBullets: 3 },
-    "雜誌排版風": { mode: "light", primary: "#111827", accent: "#ef4444", maxBullets: 4 },
-    "大字標題風": { mode: "dark",  primary: "#ffffff", accent: "#22c55e", maxBullets: 3 },
-    "簡約優雅風": { mode: "light", primary: "#0f172a", accent: "#10b981", maxBullets: 4 }
-  };
+  // 固定調色 8 個風格：維持 v4.1 原樣
+  const FIXED_STYLES = [
+    { name: "可愛粉嫩風", paletteType: "fixed_palette", definition: "使用可愛柔和粉嫩風格，添加一些卡通圖案。", theme: { mode: "light", primary: "#db2777", accent: "#7c3aed" } },
+    { name: "黑板粉筆風", paletteType: "fixed_palette", definition: "經典教室黑板風格。深綠色黑板帶有粉筆灰質感。", theme: { mode: "dark", primary: "#064e3b", accent: "#fbbf24" } },
+    { name: "手繪塗鴉風", paletteType: "fixed_palette", definition: "視覺採用手繪素描風格，融入筆記本上的塗鴉感；利用鉛筆輪廓線與紙張紋理背景。", theme: { mode: "light", primary: "#111827", accent: "#f97316" } },
+    { name: "企業曼非斯風", paletteType: "fixed_palette", definition: "採用企業曼非斯風格插圖；配色柔和無輪廓線，呈現科技新創的極簡感。", theme: { mode: "light", primary: "#2563eb", accent: "#f97316" } },
+    { name: "白板馬克筆風", paletteType: "fixed_palette", definition: "呈現白板腦力激盪風格，利用粗獷且多彩的馬克筆筆跡；背景為亮白色板質感。", theme: { mode: "light", primary: "#0f172a", accent: "#ef4444" } },
+    { name: "復古報紙風", paletteType: "fixed_palette", definition: "視覺採用1950年代復古海報風格，背景為帶有摺痕與微黃舊紙感的紋理。", theme: { mode: "light", primary: "#292524", accent: "#a16207" } },
+    { name: "盲盒公仔風", paletteType: "fixed_palette", definition: "採用 3D 角色設計與盲盒公仔風格，角色比例呈現為 Q 版；材質呈現光滑啞光。", theme: { mode: "light", primary: "#0ea5e9", accent: "#f59e0b" } },
+    { name: "手寫筆跡", paletteType: "fixed_palette", definition: "製作一張手繪風格的寬螢幕資訊圖表，字跡需呈現為流暢的手寫筆觸。", theme: { mode: "light", primary: "#374151", accent: "#0ea5e9" } }
+  ];
 
-  const STYLE_SUMMARY_BY_THEME = {
-    "現代科技風": "現代科技風格、強調可讀與對比",
-    "極簡風": "極簡風格、留白充足、重點聚焦於關鍵文字",
-    "商務專業風": "企業簡報風格、版面整齊、資訊層級清楚",
-    "暗黑高對比風": "暗黑高對比風格、強烈對比、強調關鍵資訊",
-    "教育課程風": "教學課程風格、逐步引導、重點提示清晰",
-    "資訊圖表風": "資訊圖表風格、以圖示與數據視覺化為主",
-    "新創提案風": "新創募資風格、故事線清晰、結論導向",
-    "雜誌排版風": "雜誌排版風格、視覺層級清楚、閱讀節奏分明",
-    "大字標題風": "大字標題風格、強烈字體層級、少文字高衝擊",
-    "簡約優雅風": "簡約優雅風格、配色克制、留白與對齊一致"
-  };
+  const BRANDABLE_STYLES = [
+    { name: "現代科技風", paletteType: "customizable_palette", definition: "幾何線條與模組化卡片，偏冷色與高對比，強調科技感與資訊層級；適合 IT、產品、系統架構與路線圖。", defaultTheme: { mode: "dark", primary: "#22d3ee", accent: "#a78bfa" } },
+    { name: "極簡風", paletteType: "customizable_palette", definition: "大量留白、極少裝飾元素，靠字級/間距/粗細建立層級；適合政策、研究與專業報告。", defaultTheme: { mode: "light", primary: "#111827", accent: "#2563eb" } },
+    { name: "商務專業風", paletteType: "customizable_palette", definition: "穩重配色與一致的標題列/章節結構，表格與圖表樣式規範化；適合對外簡報、主管報告與提案文件。", defaultTheme: { mode: "light", primary: "#0f172a", accent: "#0ea5e9" } },
+    { name: "暗黑高對比風", paletteType: "customizable_palette", definition: "深色背景搭配高對比主色與強調色，確保遠距可讀性；適合大螢幕展示、儀表板與重點提示。", defaultTheme: { mode: "dark", primary: "#38bdf8", accent: "#fbbf24" } },
+    { name: "教育課程風", paletteType: "customizable_palette", definition: "章節與學習目標清楚，重點提示/示例框明確，易讀優先；適合教材、訓練課程與知識科普。", defaultTheme: { mode: "light", primary: "#2563eb", accent: "#10b981" } },
+    { name: "資訊圖表風", paletteType: "customizable_palette", definition: "以圖示、流程、對照與分組來拆解概念，減少長段落；適合制度流程、方法論與比較類內容。", defaultTheme: { mode: "light", primary: "#0ea5e9", accent: "#f97316" } },
+    { name: "新創提案風", paletteType: "customizable_palette", definition: "節奏快、重點句明確，常用『問題-方案-效益-里程碑』敘事；適合 pitch deck 與產品提案。", defaultTheme: { mode: "dark", primary: "#a78bfa", accent: "#22c55e" } },
+    { name: "雜誌排版風", paletteType: "customizable_palette", definition: "分欄、圖片留白與視覺節奏感強，像雜誌專題；適合品牌故事、案例展示與圖文並重內容。", defaultTheme: { mode: "light", primary: "#111827", accent: "#e11d48" } },
+    { name: "大字標題風", paletteType: "customizable_palette", definition: "以超大標題與短句為主，每頁一個 punchline，內容極精簡；適合演講型簡報與主題宣告。", defaultTheme: { mode: "dark", primary: "#f97316", accent: "#38bdf8" } },
+    { name: "簡約優雅風", paletteType: "customizable_palette", definition: "低飽和點綴、精緻細線與柔和對比，整體乾淨高質感；適合品牌簡報、內部總結與高階報告。", defaultTheme: { mode: "light", primary: "#111827", accent: "#a16207" } },
+    { name: "__custom__", displayName: "其他（自行輸入）", paletteType: "customizable_palette", definition: "使用者自行輸入風格名稱與定義。", defaultTheme: { mode: "light", primary: "#2563eb", accent: "#f59e0b" } }
+  ];
 
-  function syncStyleSummaryUI() {
-    const preset = document.getElementById("styleSummaryPreset").value;
-    document.getElementById("styleSummaryCustomWrap").style.display =
-      (preset === "__custom__") ? "block" : "none";
+  const STYLE_CATALOG = [...FIXED_STYLES, ...BRANDABLE_STYLES];
+
+  function getStyleConfig(styleKey) {
+    return STYLE_CATALOG.find(s => s.name === styleKey) || null;
   }
 
-  function getStyleSummaryValue() {
-    const preset = document.getElementById("styleSummaryPreset").value;
-    if (preset === "__custom__") return document.getElementById("styleSummaryCustom").value.trim();
-    return preset;
+  function renderRecommendedStyleSelect() {
+    const sel = document.getElementById("recommendedStyle");
+    sel.innerHTML = "";
+
+    const ogFixed = document.createElement("optgroup");
+    ogFixed.label = "固定調色（不允許指定 mode/primary/accent）";
+
+    const ogBrand = document.createElement("optgroup");
+    ogBrand.label = "可品牌化（允許指定 mode/primary/accent）";
+
+    STYLE_CATALOG.forEach(s => {
+      const opt = document.createElement("option");
+      const label = s.displayName || s.name;
+      opt.value = s.name;
+      opt.textContent = (s.paletteType === "customizable_palette")
+        ? `${label}（可調色）`
+        : `${label}（固定調色）`;
+
+      if (s.paletteType === "customizable_palette") ogBrand.appendChild(opt);
+      else ogFixed.appendChild(opt);
+    });
+
+    sel.appendChild(ogFixed);
+    sel.appendChild(ogBrand);
   }
 
-  function setStyleSummary(summaryText) {
-    const selectEl = document.getElementById("styleSummaryPreset");
-    const customEl = document.getElementById("styleSummaryCustom");
-
-    let found = false;
-    for (const opt of selectEl.options) {
-      if (opt.value === summaryText) { found = true; break; }
-    }
-
-    if (found) {
-      selectEl.value = summaryText;
-      customEl.value = "";
-    } else {
-      selectEl.value = "__custom__";
-      customEl.value = summaryText || "";
-    }
-    syncStyleSummaryUI();
+  function isCustomStyleSelected() {
+    return document.getElementById("recommendedStyle").value === "__custom__";
   }
 
-  function getThemeStyleValue() {
-    const preset = document.getElementById("themeStylePreset").value;
-    if (preset === "__custom__") return document.getElementById("themeStyleCustom").value.trim();
-    return preset;
+  function updateCustomStyleBlockVisibility() {
+    document.getElementById("customStyleBlock").hidden = !isCustomStyleSelected(); // [web:522]
   }
 
-  function applyThemePreset(styleName) {
-    const preset = THEME_PRESETS[styleName];
-    if (!preset) return;
-
-    document.getElementById("mode").value = preset.mode;
-    document.getElementById("maxBullets").value = String(preset.maxBullets);
-    setColorAll("primary", preset.primary);
-    setColorAll("accent", preset.accent);
-
-    const summary = STYLE_SUMMARY_BY_THEME[styleName];
-    if (summary) setStyleSummary(summary);
-
-    applyTextPolicyIfFollow();
-    generateYaml();
+  function updateBrandColorBlockVisibility() {
+    const styleKey = document.getElementById("recommendedStyle").value;
+    const cfg = getStyleConfig(styleKey);
+    const customizable = (cfg && cfg.paletteType === "customizable_palette");
+    document.getElementById("brandColorBlock").style.display = customizable ? "block" : "none";
+    document.getElementById("brandColorWarn").style.display = customizable ? "none" : "block";
   }
 
-  function onThemeStyleChange() {
-    const preset = document.getElementById("themeStylePreset").value;
-    const wrap = document.getElementById("themeStyleCustomWrap");
-    const isCustom = (preset === "__custom__");
-    wrap.style.display = isCustom ? "block" : "none";
+  function applyThemeFromStyleConfig(policyKey) {
+    const styleKey = document.getElementById("recommendedStyle").value;
+    const cfg = getStyleConfig(styleKey);
+    if (!cfg) return;
 
-    if (!isCustom) {
-      applyThemePreset(preset);
+    if (cfg.paletteType === "fixed_palette") {
+      document.getElementById("mode").value = cfg.theme.mode;
+      setColorTriad("primaryColor","primaryColorPicker","primarySwatch", cfg.theme.primary);
+      setColorTriad("accentColor","accentColorPicker","accentSwatch", cfg.theme.accent);
       return;
     }
-    applyTextPolicyIfFollow();
-    generateYaml();
-  }
 
-  function buildColorUsageGuideline(primary, accent) {
-    const p = normalizeHex(primary) || primary || "";
-    const a = normalizeHex(accent) || accent || "";
-    return `primary_color ${p} 用於按鈕、圖表、重點框線、連結等互動/強調元素；accent_color ${a} 用於次要互動/提示強調；兩者不直接等於文字顏色（文字顏色以 typography 為準）。`;
-  }
+    if (policyKey === "apply_full") {
+      const dt = cfg.defaultTheme || { mode: "dark", primary: "#38bdf8", accent: "#fbbf24" };
+      const mode = document.getElementById("mode").value;
+      if (mode !== "light" && mode !== "dark") document.getElementById("mode").value = dt.mode;
 
-  function buildTextColorPolicyGuidelineLines(policy, mode, primary, accent, h1, h2, body) {
-    const p = normalizeHex(primary) || primary || "";
-    const a = normalizeHex(accent) || accent || "";
-    const h1c = normalizeHex(h1) || h1 || "";
-    const h2c = normalizeHex(h2) || h2 || "";
-    const bc = normalizeHex(body) || body || "";
-
-    if (policy === "follow") {
-      const bodyByMode = (mode === "dark") ? "#e5e7eb" : "#111827";
-      return [
-        "text_color_policy=follow",
-        `- H1 文字色跟隨 primary_color (${p})`,
-        `- H2 文字色跟隨 accent_color (${a})`,
-        `- 內文文字色依 theme.mode 決定：dark→#e5e7eb / light→#111827（目前 mode=${mode}，內文預期=${bodyByMode}）`
-      ];
+      const p = normalizeHex(document.getElementById("primaryColor").value);
+      const a = normalizeHex(document.getElementById("accentColor").value);
+      if (!p) setColorTriad("primaryColor","primaryColorPicker","primarySwatch", dt.primary);
+      if (!a) setColorTriad("accentColor","accentColorPicker","accentSwatch", dt.accent);
     }
-
-    return [
-      "text_color_policy=custom",
-      `- H1=${h1c}`,
-      `- H2=${h2c}`,
-      `- 內文=${bc}`,
-      "- 不跟隨 primary/accent 或 mode 自動變更"
-    ];
   }
 
   function applyRecommendationSafe() {
@@ -676,121 +574,226 @@
     else if (layout === "層級金字塔") maxBulletsEl.value = "5";
   }
 
-  function applyRecommendationFull() {
-    const style = document.getElementById("recommendedStyle").value;
-    if (style === "數據儀表板風") document.getElementById("mode").value = "dark";
-    if (style === "復古報紙風格") document.getElementById("mode").value = "light";
-  }
-
   function applyRecommendationPolicy() {
     const policy = document.getElementById("recommendationApplyPolicy").value;
-    if (policy === "apply_safe") applyRecommendationSafe();
-    if (policy === "apply_full") applyRecommendationFull();
+    applyThemeFromStyleConfig(policy);
+    if (policy === "apply_safe" || policy === "apply_full") applyRecommendationSafe();
   }
 
-  function generateYaml() {
-    syncStyleSummaryUI();
-    applyRecommendationPolicy();
-    applyTextPolicyIfFollow();
+  function setHidden(id, hidden) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = !!hidden; // [web:522]
+  }
 
+  function updateTextColorPolicyUI() {
+    const policy = document.getElementById("textColorPolicy").value;
+    const builtIn = (policy === "built_in");
+    setHidden("h1ColorBlock", builtIn);
+    setHidden("h2ColorBlock", builtIn);
+    setHidden("bodyColorBlock", builtIn);
+    setHidden("typographyBuiltInWarn", !builtIn);
+  }
+
+  function syncBuiltInTextColorsIfNeeded() {
+    const policy = document.getElementById("textColorPolicy").value;
+    if (policy !== "built_in") return;
+
+    const mode = document.getElementById("mode").value;
+    const primary = normalizeHex(document.getElementById("primaryColor").value) || "#000000";
+    const accent = normalizeHex(document.getElementById("accentColor").value) || "#000000";
+    const body = (mode === "dark") ? "#e5e7eb" : "#111827";
+
+    setColorTriad("h1Color","h1ColorPicker","h1Swatch", primary);
+    setColorTriad("h2Color","h2ColorPicker","h2Swatch", accent);
+    setColorTriad("bodyColor","bodyColorPicker","bodySwatch", body);
+  }
+
+  // ✅ 最終版：內建與自訂都只輸出「單行」定義（不再輸出全清單）
+  function buildRecommendedStyleDefinitionLines() {
+    const styleKey = document.getElementById("recommendedStyle").value;
+    const cfg = getStyleConfig(styleKey);
+    if (!cfg) return [];
+
+    if (styleKey === "__custom__") {
+      const customName = document.getElementById("customStyleName")?.value || "其他：自訂風格";
+      const customDef  = document.getElementById("customStyleDefinition")?.value || "（未提供定義）";
+      return [`${customName}：${customDef}`];
+    }
+
+    return [`${cfg.name}：${cfg.definition}`];
+  }
+
+  function buildTextColorPolicyGuidelineLines(textPolicy, mode, primary, accent) {
+    const p = normalizeHex(primary) || primary || "";
+    const a = normalizeHex(accent) || accent || "";
+    if (textPolicy === "built_in") {
+      const bodyByMode = (mode === "dark") ? "#e5e7eb" : "#111827";
+      return [
+        "text_color_policy=built_in",
+        "- 不輸出 h1_color/h2_color/body_color（嚴格模式）",
+        "- H1 使用 primary_color；H2 使用 accent_color；內文依 theme.mode",
+        `- primary_color=${p} / accent_color=${a} / mode=${mode}（內文預期=${bodyByMode}）`
+      ];
+    }
+    return [
+      "text_color_policy=custom",
+      "- 使用自訂 H1/H2/內文顏色"
+    ];
+  }
+
+  function buildColorUsageGuideline(primary, accent) {
+    const p = normalizeHex(primary) || primary || "";
+    const a = normalizeHex(accent) || accent || "";
+    return `primary_color ${p} 用於按鈕/圖表/重點框線/連結等互動或強調；accent_color ${a} 用於次要互動/提示。`;
+  }
+
+  function buildRecommendationApplyPolicyGuidelineLines(policy, styleName, paletteType) {
+    const paletteNote = (paletteType === "fixed_palette")
+      ? "固定調色：theme.mode/primary_color/accent_color 由風格內建；不接受外部指定。"
+      : "可品牌化：允許指定 theme.mode/primary_color/accent_color 作為品牌基色。";
+
+    return [
+      `selected: ${policy}`,
+      "- manual: 不自動調整內容密度/佈局規則；不改配色；僅輸出規則與風格。",
+      "- apply_safe: 只調整不衝突的內容密度/版面規則；不動配色。",
+      "- apply_full: 可依風格補齊安全預設（例如 mode）；不覆寫你已提供的主色/強調色（除非空值/格式錯）。",
+      `style: ${styleName}`,
+      `palette_type: ${paletteType}`,
+      `palette_rule: ${paletteNote}`
+    ];
+  }
+
+  function buildYaml() {
     const name = document.getElementById("name").value;
     const author = document.getElementById("author").value;
     const description = document.getElementById("description").value;
     const version = document.getElementById("version").value;
     const language = document.getElementById("language").value;
 
-    const themeStyle = getThemeStyleValue();
+    const requirementType = document.getElementById("requirementType").value;
+
+    const styleKey = document.getElementById("recommendedStyle").value;
+    const cfg = getStyleConfig(styleKey) || { paletteType: "fixed_palette" };
+
+    const recommendedStyle = (styleKey === "__custom__")
+      ? (document.getElementById("customStyleName").value || "其他：自訂風格")
+      : styleKey;
+
+    const layoutStructure = document.getElementById("layoutStructure").value;
+    const recommendationApplyPolicy = document.getElementById("recommendationApplyPolicy").value;
+
     const mode = document.getElementById("mode").value;
     const primaryColor = document.getElementById("primaryColor").value;
     const accentColor = document.getElementById("accentColor").value;
 
-    const requirementType = document.getElementById("requirementType").value;
-    const recommendedStyle = document.getElementById("recommendedStyle").value;
-    const layoutStructure = document.getElementById("layoutStructure").value;
-    const recommendationApplyPolicy = document.getElementById("recommendationApplyPolicy").value;
+    const textPolicy = document.getElementById("textColorPolicy").value;
 
-    const policy = document.getElementById("textColorPolicy").value;
+    const h1Font = document.getElementById("h1Font").value;
+    const h1Weight = document.getElementById("h1Weight").value;
+    const h1Size = document.getElementById("h1Size").value;
+    const h1Color = document.getElementById("h1Color").value;
 
-    const level1Font = document.getElementById("level1Font").value;
-    const level1Weight = document.getElementById("level1Weight").value;
-    const level1Color = document.getElementById("level1Color").value;
-    const level1Size = document.getElementById("level1Size").value;
+    const h2Font = document.getElementById("h2Font").value;
+    const h2Weight = document.getElementById("h2Weight").value;
+    const h2Size = document.getElementById("h2Size").value;
+    const h2Color = document.getElementById("h2Color").value;
 
-    const level2Font = document.getElementById("level2Font").value;
-    const level2Weight = document.getElementById("level2Weight").value;
-    const level2Color = document.getElementById("level2Color").value;
-    const level2Size = document.getElementById("level2Size").value;
-
-    const bodyTextFont = document.getElementById("bodyTextFont").value;
-    const bodyTextWeight = document.getElementById("bodyTextWeight").value;
-    const bodyTextColor = document.getElementById("bodyTextColor").value;
-    const bodyTextSize = document.getElementById("bodyTextSize").value;
+    const bodyFont = document.getElementById("bodyFont").value;
+    const bodyWeight = document.getElementById("bodyWeight").value;
+    const bodySize = document.getElementById("bodySize").value;
+    const bodyColor = document.getElementById("bodyColor").value;
 
     const maxBullets = document.getElementById("maxBullets").value;
     const maxWords = document.getElementById("maxWords").value;
     const maxLines = document.getElementById("maxLines").value;
-
-    const styleSummary = getStyleSummaryValue();
     const densityRule = document.getElementById("densityRule").value;
 
+    const recommendedStyleDefinitionLines = buildRecommendedStyleDefinitionLines();
     const colorUsageGuideline = buildColorUsageGuideline(primaryColor, accentColor);
-    const textColorPolicyGuidelineLines = buildTextColorPolicyGuidelineLines(
-      policy, mode, primaryColor, accentColor, level1Color, level2Color, bodyTextColor
-    );
+    const textColorPolicyGuidelineLines = buildTextColorPolicyGuidelineLines(textPolicy, mode, primaryColor, accentColor);
+    const recommendationApplyPolicyGuidelineLines =
+      buildRecommendationApplyPolicyGuidelineLines(recommendationApplyPolicy, recommendedStyle, cfg.paletteType);
 
-    const yaml =
-`metadata:
-  version: ${escapeYamlString(version)}
-  name: ${escapeYamlString(name)}
-  author: ${escapeYamlString(author)}
-  description: ${escapeYamlString(description)}
-  language: ${escapeYamlString(language)}
+    const lines = [];
 
-theme:
-  style: ${escapeYamlString(themeStyle)}
-  mode: ${escapeYamlString(mode)}
-  primary_color: ${escapeYamlString(primaryColor)}
-  accent_color: ${escapeYamlString(accentColor)}
+    lines.push("metadata:");
+    lines.push(`  version: ${escapeYamlString(version)}`);
+    lines.push(`  name: ${escapeYamlString(name)}`);
+    lines.push(`  author: ${escapeYamlString(author)}`);
+    lines.push(`  description: ${escapeYamlString(description)}`);
+    lines.push(`  language: ${escapeYamlString(language)}`);
+    lines.push("");
 
-typography:
-  text_color_policy: ${escapeYamlString(policy)}
-  level1_font: ${escapeYamlString(level1Font)}
-  level1_weight: ${escapeYamlString(level1Weight)}
-  level1_color: ${escapeYamlString(level1Color)}
-  level1_size: ${escapeYamlString(level1Size)}
-  level2_font: ${escapeYamlString(level2Font)}
-  level2_weight: ${escapeYamlString(level2Weight)}
-  level2_color: ${escapeYamlString(level2Color)}
-  level2_size: ${escapeYamlString(level2Size)}
-  body_text_font: ${escapeYamlString(bodyTextFont)}
-  body_text_weight: ${escapeYamlString(bodyTextWeight)}
-  body_text_color: ${escapeYamlString(bodyTextColor)}
-  body_text_size: ${escapeYamlString(bodyTextSize)}
+    lines.push("theme:");
+    lines.push(`  style: ${escapeYamlString(recommendedStyle)}`);
+    lines.push(`  mode: ${escapeYamlString(mode)}`);
+    lines.push(`  primary_color: ${escapeYamlString(primaryColor)}`);
+    lines.push(`  accent_color: ${escapeYamlString(accentColor)}`);
+    lines.push("");
 
-layout:
-  slide_width: 960
-  slide_height: 540
-  padding_top: 64
-  padding_bottom: 64
-  max_content_height: 412
+    // typography 區塊（已修正：完整語法）
+    lines.push("typography:");
+    lines.push(`  text_color_policy: ${escapeYamlString(textPolicy)}`);
+    lines.push(`  h1_font: ${escapeYamlString(h1Font)}`);
+    lines.push(`  h1_weight: ${escapeYamlString(h1Weight)}`);
+    lines.push(`  h1_size: ${escapeYamlString(h1Size)}`);
+    if (textPolicy === "custom") lines.push(`  h1_color: ${escapeYamlString(h1Color)}`);
+    lines.push(`  h2_font: ${escapeYamlString(h2Font)}`);
+    lines.push(`  h2_weight: ${escapeYamlString(h2Weight)}`);
+    lines.push(`  h2_size: ${escapeYamlString(h2Size)}`);
+    if (textPolicy === "custom") lines.push(`  h2_color: ${escapeYamlString(h2Color)}`);
+    lines.push(`  body_font: ${escapeYamlString(bodyFont)}`);
+    lines.push(`  body_weight: ${escapeYamlString(bodyWeight)}`);
+    lines.push(`  body_size: ${escapeYamlString(bodySize)}`);
+    if (textPolicy === "custom") lines.push(`  body_color: ${escapeYamlString(bodyColor)}`);
+    lines.push("");
 
-content_rules:
-  max_bullets_per_slide: ${maxBullets}
-  max_words_per_bullet: ${maxWords}
-  max_lines_per_paragraph: ${maxLines}
-  one_main_idea_per_slide: true
+    lines.push("layout:");
+    lines.push("  slide_width: 960");
+    lines.push("  slide_height: 540");
+    lines.push("  padding_top: 64");
+    lines.push("  padding_bottom: 64");
+    lines.push("  max_content_height: 412");
+    lines.push("");
 
-guidelines:
-  style_summary: ${escapeYamlString(styleSummary)}
-  content_density_rule: ${escapeYamlString(densityRule)}
-  color_usage_guideline: ${escapeYamlString(colorUsageGuideline)}
-  text_color_policy_guideline: ${yamlBlockScalar(textColorPolicyGuidelineLines)}
-  requirement_type: ${escapeYamlString(requirementType)}
-  recommended_style: ${escapeYamlString(recommendedStyle)}
-  layout_structure: ${escapeYamlString(layoutStructure)}
-  recommendation_apply_policy: ${escapeYamlString(recommendationApplyPolicy)}
-`;
-    document.getElementById("yamlOutput").value = yaml;
+    lines.push("content_rules:");
+    lines.push(`  max_bullets_per_slide: ${maxBullets}`);
+    lines.push(`  max_words_per_bullet: ${maxWords}`);
+    lines.push(`  max_lines_per_paragraph: ${maxLines}`);
+    lines.push("  one_main_idea_per_slide: true");
+    lines.push("");
+
+    lines.push("guidelines:");
+    lines.push(`  requirement_type: ${escapeYamlString(requirementType)}`);
+    lines.push(`  recommended_style: ${escapeYamlString(recommendedStyle)}`);
+    lines.push(`  recommended_style_definition: ${yamlBlockScalar(recommendedStyleDefinitionLines)}`);
+    lines.push(`  layout_structure: ${escapeYamlString(layoutStructure)}`);
+    lines.push(`  style_palette_type: ${escapeYamlString(cfg.paletteType)}`);
+    lines.push(`  content_density_rule: ${escapeYamlString(densityRule)}`);
+    lines.push(`  color_usage_guideline: ${escapeYamlString(colorUsageGuideline)}`);
+    lines.push(`  text_color_policy_guideline: ${yamlBlockScalar(textColorPolicyGuidelineLines)}`);
+    lines.push(`  recommendation_apply_policy: ${escapeYamlString(recommendationApplyPolicy)}`);
+    lines.push(`  recommendation_apply_policy_guideline: ${yamlBlockScalar(recommendationApplyPolicyGuidelineLines)}`);
+    lines.push("");
+
+    // 嚴格：built_in 時不輸出顏色欄位；但 computed_preview 顯示推導後顏色（純檢視用）
+    lines.push("computed_preview:");
+    lines.push("  typography_colors:");
+    lines.push(`    h1: ${escapeYamlString(h1Color)}`);
+    lines.push(`    h2: ${escapeYamlString(h2Color)}`);
+    lines.push(`    body: ${escapeYamlString(bodyColor)}`);
+
+    return lines.join("\n");
+  }
+
+  function generateYaml() {
+    updateCustomStyleBlockVisibility();
+    updateBrandColorBlockVisibility();
+    applyRecommendationPolicy();
+    updateTextColorPolicyUI();
+    syncBuiltInTextColorsIfNeeded();
+    document.getElementById("yamlOutput").value = buildYaml();
   }
 
   function pad2(n) { return String(n).padStart(2, "0"); }
@@ -832,10 +835,8 @@ guidelines:
     const prefix = makeSafeFilename(document.getElementById("filePrefix").value || "YAML");
     const ts = formatTimestamp(document.getElementById("timestampFormat").value);
     const filename = `${prefix}-${ts}.${ext}`;
-
     const mime = (ext === "txt") ? "text/plain;charset=utf-8" : "text/yaml;charset=utf-8";
-    const blob = new Blob([yamlText], { type: mime });
-    downloadBlob(blob, filename);
+    downloadBlob(new Blob([yamlText], { type: mime }), filename);
   }
 
   function downloadCurrentAsPdf() {
@@ -846,7 +847,6 @@ guidelines:
     const filename = `${prefix}-${ts}.pdf`;
 
     const fontSize = Number(document.getElementById("pdfFontSize").value || 10);
-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     doc.setFont("courier", "normal");
@@ -855,7 +855,6 @@ guidelines:
     const margin = 36;
     const pageWidth = doc.internal.pageSize.getWidth();
     const maxWidth = pageWidth - margin * 2;
-
     const lines = doc.splitTextToSize(yamlText, maxWidth);
     doc.text(lines, margin, margin);
     doc.save(filename);
@@ -875,103 +874,111 @@ guidelines:
     document.getElementById("version").value = "1.0";
     document.getElementById("language").value = "zh-TW";
 
-    document.getElementById("requirementType").value = "行銷懶人包";
-    document.getElementById("recommendedStyle").value = "可愛粉嫩風格";
+    document.getElementById("requirementType").value = "教育知識科普";
     document.getElementById("layoutStructure").value = "不指定佈局";
     document.getElementById("recommendationApplyPolicy").value = "manual";
 
-    document.getElementById("themeStylePreset").value = "現代科技風";
-    document.getElementById("themeStyleCustom").value = "";
-    document.getElementById("themeStyleCustomWrap").style.display = "none";
+    document.getElementById("textColorPolicy").value = "built_in";
 
-    document.getElementById("textColorPolicy").value = "follow";
+    document.getElementById("h1Font").value = "Arial, sans-serif";
+    document.getElementById("h1Weight").value = "bold";
+    document.getElementById("h1Size").value = "36";
 
-    document.getElementById("level1Font").value = "Arial, sans-serif";
-    document.getElementById("level1Weight").value = "normal";
-    document.getElementById("level1Size").value = "36";
+    document.getElementById("h2Font").value = "Arial, sans-serif";
+    document.getElementById("h2Weight").value = "normal";
+    document.getElementById("h2Size").value = "24";
 
-    document.getElementById("level2Font").value = "Arial, sans-serif";
-    document.getElementById("level2Weight").value = "normal";
-    document.getElementById("level2Size").value = "24";
+    document.getElementById("bodyFont").value = "Arial, sans-serif";
+    document.getElementById("bodyWeight").value = "normal";
+    document.getElementById("bodySize").value = "18";
 
-    document.getElementById("bodyTextFont").value = "Arial, sans-serif";
-    document.getElementById("bodyTextWeight").value = "normal";
-    document.getElementById("bodyTextSize").value = "18";
-
+    document.getElementById("maxBullets").value = "5";
     document.getElementById("maxWords").value = "20";
     document.getElementById("maxLines").value = "8";
-    document.getElementById("densityRule").value =
-      "每張投影片僅包含一個主要概念，條列不超過上限，必要時拆成多張。";
+    document.getElementById("densityRule").value = "每張投影片僅包含一個主要概念，條列不超過上限，必要時拆成多張。";
 
     document.getElementById("filePrefix").value = "YAML";
     document.getElementById("timestampFormat").value = "date";
     document.getElementById("downloadFormat").value = "yaml";
     document.getElementById("pdfFontSize").value = "10";
 
-    applyThemePreset("現代科技風");
+    document.getElementById("customStyleName").value = "其他：自訂風格";
+    document.getElementById("customStyleDefinition").value = "請用一句話描述此風格的視覺語言、構圖與適用情境。";
+
+    // v4.2-final：預設推薦風格改為「手繪塗鴉風」
+    document.getElementById("recommendedStyle").value = "手繪塗鴉風";
+
     generateYaml();
   }
 
-  function copyYaml() {
+  async function copyYaml() {
     const ta = document.getElementById("yamlOutput");
-    ta.focus();
-    ta.select();
-    ta.setSelectionRange(0, 999999);
-    const ok = document.execCommand("copy");
+    const text = ta.value || "";
     const hint = document.getElementById("copyHint");
-    hint.textContent = ok ? "已複製到剪貼簿" : "無法自動複製，請手動選取";
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        hint.textContent = "已複製到剪貼簿";
+      } else {
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, 999999);
+        const ok = document.execCommand("copy"); // execCommand 仍可作為回退方案 [web:591]
+        hint.textContent = ok ? "已複製到剪貼簿" : "無法自動複製，請手動選取";
+      }
+    } catch (e) {
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, 999999);
+      const ok = document.execCommand("copy"); // 回退 [web:591]
+      hint.textContent = ok ? "已複製到剪貼簿" : "無法自動複製，請手動選取";
+    }
+
     setTimeout(() => { hint.textContent = ""; }, 2000);
   }
 
   window.addEventListener("DOMContentLoaded", () => {
+    renderRecommendedStyleSelect();
+
+    // v4.2-final：預設推薦風格改為「手繪塗鴉風」
+    document.getElementById("recommendedStyle").value = "手繪塗鴉風";
+
     document.getElementById("btnDownload").addEventListener("click", downloadFile);
     document.getElementById("btnReset").addEventListener("click", resetForm);
     document.getElementById("btnCopy").addEventListener("click", copyYaml);
 
-    document.getElementById("themeStylePreset").addEventListener("change", onThemeStyleChange);
+    document.getElementById("recommendedStyle").addEventListener("change", () => {
+      updateCustomStyleBlockVisibility();
+      generateYaml();
+    });
 
-    const ssp = document.getElementById("styleSummaryPreset");
-    ssp.addEventListener("change", () => { syncStyleSummaryUI(); generateYaml(); });
-    ssp.addEventListener("input",  () => { syncStyleSummaryUI(); generateYaml(); });
+    [
+      "requirementType","layoutStructure","recommendationApplyPolicy","mode","textColorPolicy",
+      "h1Font","h1Weight","h1Size","h2Font","h2Weight","h2Size","bodyFont","bodyWeight","bodySize",
+      "timestampFormat","downloadFormat"
+    ].forEach(id => document.getElementById(id).addEventListener("change", generateYaml));
 
-    ["requirementType","recommendedStyle","layoutStructure","recommendationApplyPolicy","textColorPolicy"].forEach(id => {
-      document.getElementById(id).addEventListener("change", generateYaml);
-    }); // select 用 change 事件 [web:95]
+    [
+      "name","author","description","version","language",
+      "customStyleName","customStyleDefinition",
+      "maxBullets","maxWords","maxLines","densityRule",
+      "filePrefix","pdfFontSize",
+      "primaryColor","accentColor","h1Color","h2Color","bodyColor"
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("input", generateYaml);
+    });
 
     bindColorTriad("primaryColorPicker","primaryColor","primarySwatch");
     bindColorTriad("accentColorPicker","accentColor","accentSwatch");
-    bindColorTriad("level1ColorPicker","level1Color","level1Swatch");
-    bindColorTriad("level2ColorPicker","level2Color","level2Swatch");
-    bindColorTriad("bodyTextColorPicker","bodyTextColor","bodyTextSwatch");
+    bindColorTriad("h1ColorPicker","h1Color","h1Swatch");
+    bindColorTriad("h2ColorPicker","h2Color","h2Swatch");
+    bindColorTriad("bodyColorPicker","bodyColor","bodySwatch");
 
-    const ids = [
-      "name","author","description","version","language",
-      "themeStyleCustom","styleSummaryCustom",
-      "level1Font","level1Weight","level1Size",
-      "level2Font","level2Weight","level2Size",
-      "bodyTextFont","bodyTextWeight","bodyTextSize",
-      "maxBullets","maxWords","maxLines","densityRule",
-      "filePrefix","timestampFormat","downloadFormat","pdfFontSize"
-    ];
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-        el.addEventListener("input", generateYaml);
-        el.addEventListener("change", generateYaml);
-      });
-
-      document.getElementById("mode").addEventListener("change", () => {
-        applyTextPolicyIfFollow();
-        generateYaml();
-      }); // select 的變更用 change [web:95]
-
-      // 初始化：先套用預設主題，再輸出 YAML
-      onThemeStyleChange();
-      syncStyleSummaryUI();
-      applyTextPolicyIfFollow();
-      generateYaml();
-    });
+    generateYaml();
+  });
 </script>
 </body>
 </html>
-
