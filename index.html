@@ -23,12 +23,12 @@
         .preview-area::-webkit-scrollbar-track { background: #1f2937; }
         .preview-area::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 4px; }
 
-        /* 色票輸入框優化 */
+        /* 色票輸入框優化 - 修復點擊範圍問題 */
         input[type="color"] {
             -webkit-appearance: none;
             border: none;
-            width: 32px;
-            height: 32px;
+            width: 100%; /* 改為 100% 以適應父容器大小 */
+            height: 100%; /* 改為 100% 以適應父容器大小 */
             padding: 0;
             overflow: hidden;
             border-radius: 50%;
@@ -39,7 +39,7 @@
             padding: 0; 
         }
         input[type="color"]::-webkit-color-swatch {
-            border: 2px solid #374151;
+            border: none; /* 移除預設邊框，改由父容器控制 */
             border-radius: 50%;
         }
 
@@ -81,7 +81,7 @@
 
         const Sparkles = (props) => (
             <IconWrapper {...props}>
-                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
             </IconWrapper>
         );
 
@@ -442,19 +442,14 @@ ${colorInfo}
                                     <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
                                         <div className="flex flex-col sm:flex-row gap-6 items-center">
                                             <div className="flex flex-col items-center gap-2">
-                                                <div className="relative group cursor-pointer hover:scale-105 transition">
-                                                    <div 
-                                                        className="w-16 h-16 rounded-full shadow-lg border-2 border-gray-500 overflow-hidden relative" 
-                                                        style={{ backgroundColor: formData.customPrimary }}
-                                                    >
-                                                        <input 
-                                                            type="color" 
-                                                            name="customPrimary" 
-                                                            value={formData.customPrimary} 
-                                                            onChange={handleChange}
-                                                            className="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer"
-                                                        />
-                                                    </div>
+                                                <div className="relative group cursor-pointer hover:scale-105 transition w-16 h-16 rounded-full shadow-lg border-2 border-gray-500 overflow-hidden" style={{ backgroundColor: formData.customPrimary }}>
+                                                    <input 
+                                                        type="color" 
+                                                        name="customPrimary" 
+                                                        value={formData.customPrimary} 
+                                                        onChange={handleChange}
+                                                        className="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer"
+                                                    />
                                                 </div>
                                                 <div className="text-center">
                                                     <span className="text-xs font-bold text-gray-300 block">主色</span>
@@ -463,19 +458,14 @@ ${colorInfo}
                                             </div>
 
                                             <div className="flex flex-col items-center gap-2">
-                                                <div className="relative group cursor-pointer hover:scale-105 transition">
-                                                    <div 
-                                                        className="w-16 h-16 rounded-full shadow-lg border-2 border-gray-500 overflow-hidden relative" 
-                                                        style={{ backgroundColor: formData.customAccent }}
-                                                    >
-                                                        <input 
-                                                            type="color" 
-                                                            name="customAccent" 
-                                                            value={formData.customAccent} 
-                                                            onChange={handleChange}
-                                                            className="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer"
-                                                        />
-                                                    </div>
+                                                <div className="relative group cursor-pointer hover:scale-105 transition w-16 h-16 rounded-full shadow-lg border-2 border-gray-500 overflow-hidden" style={{ backgroundColor: formData.customAccent }}>
+                                                    <input 
+                                                        type="color" 
+                                                        name="customAccent" 
+                                                        value={formData.customAccent} 
+                                                        onChange={handleChange}
+                                                        className="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer"
+                                                    />
                                                 </div>
                                                 <div className="text-center">
                                                     <span className="text-xs font-bold text-gray-300 block">輔助色</span>
