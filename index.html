@@ -166,32 +166,33 @@
         );
         // --- End of Icons ---
 
-        // 視覺風格資料庫 (完整 24 種風格與色票建議)
+        // 視覺風格資料庫 (完整 25 種風格與色票建議，新增現代黃金奢華風)
         const visualStyles = [
             { id: 1, name: "現代日系漫畫感 (手繪風)", desc: "採用漫畫分鏡與手繪風格，製作寬螢幕資訊圖表，字跡呈現流暢的手寫筆觸，視覺對比強烈", primary: "#FFFFFF", accent: "#000000", primaryName: "純白", accentName: "墨黑" },
-            { id: 2, name: "黑板手寫粉筆風", desc: "以深綠色為底，模擬白、黃、粉紅粉筆字體，具親切感", primary: "#1A3A32", accent: "#FFF44F", primaryName: "深墨綠", accentName: "粉筆黃" },
-            { id: 3, name: "俐落時尚白色背景", desc: "簡潔、高對比，用於將枯澀數據轉化為震撼視覺", primary: "#FFFFFF", accent: "#0363A7", primaryName: "極簡白", accentName: "專業藍" },
-            { id: 4, name: "數位普普風格", desc: "多用變形蟲等有機形狀，配色活潑（粉、青、紫）", primary: "#FF007F", accent: "#00FFFF", primaryName: "活力粉", accentName: "電漿青" },
-            { id: 5, name: "運動能量風格", desc: "強調「疾走感」，常用瀝青黑搭配螢光萊姆綠", primary: "#222222", accent: "#CCFF00", primaryName: "瀝青黑", accentName: "螢光萊姆" },
-            { id: 6, name: "古典普普風格", desc: "融合石膏像與現代元素（如VR、珍奶），具文化衝擊感", primary: "#D3D3D3", accent: "#FFD700", primaryName: "雕像灰", accentName: "亮金黃" },
-            { id: 7, name: "現代雜誌風格", desc: "無邊框設計，強調利用「負空間」展現高級感", primary: "#1A1A1A", accent: "#FFFFFF", primaryName: "冷酷黑", accentName: "高光白" },
-            { id: 8, name: "材質風格 (Stone)", desc: "模擬清水模質感，結合虛化磨砂玻璃", primary: "#A9A9A9", accent: "#F0F0F0", primaryName: "石材灰", accentName: "磨砂白" },
-            { id: 9, name: "一筆畫水彩風格", desc: "極簡線條搭配莫蘭迪色系，呈現優雅文藝感", primary: "#B1A296", accent: "#D4C4B7", primaryName: "莫蘭迪灰", accentName: "暖沙色" },
-            { id: 10, name: "日式和風風格", desc: "和紙質感背景，點綴金箔與傳統紋樣", primary: "#F5F5DC", accent: "#D4AF37", primaryName: "和紙米", accentName: "古典金" },
-            { id: 11, name: "霓虹拼貼風格", desc: "懷舊米色稿紙為底，疊加高飽和螢光幾何圖形", primary: "#F5F5DC", accent: "#EAFF00", primaryName: "米色稿紙", accentName: "霓虹黃" },
-            { id: 12, name: "裝置模型風格", desc: "以高品質電子設備（iPad/iPhone）模型為主角呈現內容", primary: "#FFFFFF", accent: "#C0C0C0", primaryName: "潔淨白", accentName: "銀屬色" },
-            { id: 13, name: "3D 數位城市風格", desc: "模擬 SimCity 般的等角視圖（Isometric），具科技俯瞰感", primary: "#1E90FF", accent: "#708090", primaryName: "科技藍", accentName: "板岩灰" },
-            { id: 14, name: "復古未來等角投影", desc: "Z型視覺流向的 3D 路徑，結合 80 年代復古配色", primary: "#1B1464", accent: "#F7931E", primaryName: "深邃藍", accentName: "復古橘" },
-            { id: 15, name: "聖誕主題風格", desc: "全面套用節慶元素（松針、雪花、禮物盒）", primary: "#C41E3A", accent: "#006400", primaryName: "聖誕紅", accentName: "常青綠" },
-            { id: 16, name: "活力數位風", desc: "使用手繪感圖示與圓角設計，消除科技冷感", primary: "#00A8E8", accent: "#FFCC00", primaryName: "鮮明藍", accentName: "陽光黃" },
-            { id: 17, name: "質感系美學", desc: "炭灰色與泥土色調，傳遞穩重、專業與有機質感", primary: "#333333", accent: "#8B4513", primaryName: "炭炭灰", accentName: "泥土褐" },
-            { id: 18, name: "前衛構築風格", desc: "深黑背景配上極細線條（Hairline），標註解剖細節", primary: "#121212", accent: "#00F3FF", primaryName: "構築黑", accentName: "霓虹青" },
-            { id: 19, name: "工業簡約風", desc: "強調水泥、鋼鐵等硬質表面質感，適合製造業或工程主題", primary: "#808080", accent: "#4682B4", primaryName: "工業灰", accentName: "鋼鐵藍" },
-            { id: 20, name: "文青質感美學", desc: "阿爾卑斯白或沙褐背景，搭配襯線字體，適合生活風格", primary: "#F8F8FF", accent: "#C2B280", primaryName: "阿爾卑斯白", accentName: "沙漠沙" },
-            { id: 21, name: "白板馬克筆風格", desc: "呈現白板腦力激盪風格，利用粗獷且多彩的馬克筆筆跡；背景為亮白色板質感", primary: "#FFFFFF", accent: "#0000FF", primaryName: "白板色", accentName: "馬克筆藍" },
-            { id: 22, name: "手繪塗鴉風格", desc: "視覺採用手繪素描風格，融入筆記本上的塗鴉感；利用鉛筆輪廓線與紙張紋理背景", primary: "#F0EAD6", accent: "#404040", primaryName: "紙張米", accentName: "鉛筆灰" },
-            { id: 23, name: "數據儀表板風", desc: "視覺呈現為現代化的數據儀表板介面，包含乾淨的數據組件如圖表與曲線圖", primary: "#1F2937", accent: "#10B981", primaryName: "深灰底", accentName: "數據綠" },
-            { id: 24, name: "復古報紙風格", desc: "視覺採用1950年代復古海報風格，背景為帶有摺痕與微黃舊紙感的紋理", primary: "#F4E4C1", accent: "#2C2C2C", primaryName: "舊紙黃", accentName: "油墨黑" }
+            { id: 2, name: "現代黃金奢華風", desc: "具有黃金質感，主體表面有強烈鏡面高光與細緻顆粒反射，呈現「金屬光澤＋微觀質地」。(建議搭配：古銅金#B46F16、深棕黑#331504、高光香檳金#F5C96C等)", primary: "#E4AB42", accent: "#DB9318", primaryName: "深金棕陰影", accentName: "琥珀金" },
+            { id: 3, name: "黑板手寫粉筆風", desc: "以深綠色為底，模擬白、黃、粉紅粉筆字體，具親切感", primary: "#1A3A32", accent: "#FFF44F", primaryName: "深墨綠", accentName: "粉筆黃" },
+            { id: 4, name: "俐落時尚白色背景", desc: "簡潔、高對比，用於將枯澀數據轉化為震撼視覺", primary: "#FFFFFF", accent: "#0363A7", primaryName: "極簡白", accentName: "專業藍" },
+            { id: 5, name: "數位普普風格", desc: "多用變形蟲等有機形狀，配色活潑（粉、青、紫）", primary: "#FF007F", accent: "#00FFFF", primaryName: "活力粉", accentName: "電漿青" },
+            { id: 6, name: "運動能量風格", desc: "強調「疾走感」，常用瀝青黑搭配螢光萊姆綠", primary: "#222222", accent: "#CCFF00", primaryName: "瀝青黑", accentName: "螢光萊姆" },
+            { id: 7, name: "古典普普風格", desc: "融合石膏像與現代元素（如VR、珍奶），具文化衝擊感", primary: "#D3D3D3", accent: "#FFD700", primaryName: "雕像灰", accentName: "亮金黃" },
+            { id: 8, name: "現代雜誌風格", desc: "無邊框設計，強調利用「負空間」展現高級感", primary: "#1A1A1A", accent: "#FFFFFF", primaryName: "冷酷黑", accentName: "高光白" },
+            { id: 9, name: "材質風格 (Stone)", desc: "模擬清水模質感，結合虛化磨砂玻璃", primary: "#A9A9A9", accent: "#F0F0F0", primaryName: "石材灰", accentName: "磨砂白" },
+            { id: 10, name: "一筆畫水彩風格", desc: "極簡線條搭配莫蘭迪色系，呈現優雅文藝感", primary: "#B1A296", accent: "#D4C4B7", primaryName: "莫蘭迪灰", accentName: "暖沙色" },
+            { id: 11, name: "日式和風風格", desc: "和紙質感背景，點綴金箔與傳統紋樣", primary: "#F5F5DC", accent: "#D4AF37", primaryName: "和紙米", accentName: "古典金" },
+            { id: 12, name: "霓虹拼貼風格", desc: "懷舊米色稿紙為底，疊加高飽和螢光幾何圖形", primary: "#F5F5DC", accent: "#EAFF00", primaryName: "米色稿紙", accentName: "霓虹黃" },
+            { id: 13, name: "裝置模型風格", desc: "以高品質電子設備（iPad/iPhone）模型為主角呈現內容", primary: "#FFFFFF", accent: "#C0C0C0", primaryName: "潔淨白", accentName: "銀屬色" },
+            { id: 14, name: "3D 數位城市風格", desc: "模擬 SimCity 般的等角視圖（Isometric），具科技俯瞰感", primary: "#1E90FF", accent: "#708090", primaryName: "科技藍", accentName: "板岩灰" },
+            { id: 15, name: "復古未來等角投影", desc: "Z型視覺流向的 3D 路徑，結合 80 年代復古配色", primary: "#1B1464", accent: "#F7931E", primaryName: "深邃藍", accentName: "復古橘" },
+            { id: 16, name: "聖誕主題風格", desc: "全面套用節慶元素（松針、雪花、禮物盒）", primary: "#C41E3A", accent: "#006400", primaryName: "聖誕紅", accentName: "常青綠" },
+            { id: 17, name: "活力數位風", desc: "使用手繪感圖示與圓角設計，消除科技冷感", primary: "#00A8E8", accent: "#FFCC00", primaryName: "鮮明藍", accentName: "陽光黃" },
+            { id: 18, name: "質感系美學", desc: "炭灰色與泥土色調，傳遞穩重、專業與有機質感", primary: "#333333", accent: "#8B4513", primaryName: "炭炭灰", accentName: "泥土褐" },
+            { id: 19, name: "前衛構築風格", desc: "深黑背景配上極細線條（Hairline），標註解剖細節", primary: "#121212", accent: "#00F3FF", primaryName: "構築黑", accentName: "霓虹青" },
+            { id: 20, name: "工業簡約風", desc: "強調水泥、鋼鐵等硬質表面質感，適合製造業或工程主題", primary: "#808080", accent: "#4682B4", primaryName: "工業灰", accentName: "鋼鐵藍" },
+            { id: 21, name: "文青質感美學", desc: "阿爾卑斯白或沙褐背景，搭配襯線字體，適合生活風格", primary: "#F8F8FF", accent: "#C2B280", primaryName: "阿爾卑斯白", accentName: "沙漠沙" },
+            { id: 22, name: "白板馬克筆風格", desc: "呈現白板腦力激盪風格，利用粗獷且多彩的馬克筆筆跡；背景為亮白色板質感", primary: "#FFFFFF", accent: "#0000FF", primaryName: "白板色", accentName: "馬克筆藍" },
+            { id: 23, name: "手繪塗鴉風格", desc: "視覺採用手繪素描風格，融入筆記本上的塗鴉感；利用鉛筆輪廓線與紙張紋理背景", primary: "#F0EAD6", accent: "#404040", primaryName: "紙張米", accentName: "鉛筆灰" },
+            { id: 24, name: "數據儀表板風", desc: "視覺呈現為現代化的數據儀表板介面，包含乾淨的數據組件如圖表與曲線圖", primary: "#1F2937", accent: "#10B981", primaryName: "深灰底", accentName: "數據綠" },
+            { id: 25, name: "復古報紙風格", desc: "視覺採用1950年代復古海報風格，背景為帶有摺痕與微黃舊紙感的紋理", primary: "#F4E4C1", accent: "#2C2C2C", primaryName: "舊紙黃", accentName: "油墨黑" }
         ];
 
         // 受眾選項
@@ -218,7 +219,7 @@
             // 簡報內容限制預設值
             slideBulletLimit: 5,
             bulletCharLimit: 20,
-            paragraphLineLimit: 8,
+            paragraphLineLimit: 8, // 修正為 8
             // 顏色自訂
             customPrimary: "#FFFFFF",
             customAccent: "#0363A7",
