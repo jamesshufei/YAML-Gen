@@ -81,7 +81,7 @@
 
         const Sparkles = (props) => (
             <IconWrapper {...props}>
-                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
             </IconWrapper>
         );
 
@@ -367,11 +367,20 @@ ${colorInfo}
             return (
                 <div className="min-h-screen pb-12">
                     <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-10 shadow-lg">
-                        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
-                            <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-md">
-                                <Sparkles size={24} color="#fff" />
+                        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-md">
+                                    <Sparkles size={24} color="#fff" />
+                                </div>
+                                <h1 className="text-xl md:text-2xl font-bold text-gray-100 tracking-wide">Notebook LM-資訊圖表及簡報提示詞生成器</h1>
                             </div>
-                            <h1 className="text-xl md:text-2xl font-bold text-gray-100 tracking-wide">Notebook LM-資訊圖表及簡報提示詞生成器</h1>
+                            <button 
+                                onClick={() => window.open('color.html', '_blank')}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors border border-gray-600 text-sm"
+                            >
+                                <Palette size={18} />
+                                開啟配色表
+                            </button>
                         </div>
                     </header>
 
