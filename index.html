@@ -81,7 +81,7 @@
 
         const Sparkles = (props) => (
             <IconWrapper {...props}>
-                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L12 3Z" />
             </IconWrapper>
         );
 
@@ -166,7 +166,7 @@
         );
         // --- End of Icons ---
 
-        // 視覺風格資料庫 (完整 25 種風格與色票建議，新增現代黃金奢華風)
+        // 視覺風格資料庫 (完整 26 種風格)
         const visualStyles = [
             { id: 1, name: "現代日系漫畫感 (手繪風)", desc: "採用漫畫分鏡與手繪風格，製作寬螢幕資訊圖表，字跡呈現流暢的手寫筆觸，視覺對比強烈", primary: "#FFFFFF", accent: "#000000", primaryName: "純白", accentName: "墨黑" },
             { id: 2, name: "現代黃金奢華風", desc: "具有黃金質感，主體表面有強烈鏡面高光與細緻顆粒反射，呈現「金屬光澤＋微觀質地」。(建議搭配：古銅金#B46F16、深棕黑#331504、高光香檳金#F5C96C等)", primary: "#E4AB42", accent: "#DB9318", primaryName: "深金棕陰影", accentName: "琥珀金" },
@@ -192,7 +192,8 @@
             { id: 22, name: "白板馬克筆風格", desc: "呈現白板腦力激盪風格，利用粗獷且多彩的馬克筆筆跡；背景為亮白色板質感", primary: "#FFFFFF", accent: "#0000FF", primaryName: "白板色", accentName: "馬克筆藍" },
             { id: 23, name: "手繪塗鴉風格", desc: "視覺採用手繪素描風格，融入筆記本上的塗鴉感；利用鉛筆輪廓線與紙張紋理背景", primary: "#F0EAD6", accent: "#404040", primaryName: "紙張米", accentName: "鉛筆灰" },
             { id: 24, name: "數據儀表板風", desc: "視覺呈現為現代化的數據儀表板介面，包含乾淨的數據組件如圖表與曲線圖", primary: "#1F2937", accent: "#10B981", primaryName: "深灰底", accentName: "數據綠" },
-            { id: 25, name: "復古報紙風格", desc: "視覺採用1950年代復古海報風格，背景為帶有摺痕與微黃舊紙感的紋理", primary: "#F4E4C1", accent: "#2C2C2C", primaryName: "舊紙黃", accentName: "油墨黑" }
+            { id: 25, name: "復古報紙風格", desc: "視覺採用1950年代復古海報風格，背景為帶有摺痕與微黃舊紙感的紋理", primary: "#F4E4C1", accent: "#2C2C2C", primaryName: "舊紙黃", accentName: "油墨黑" },
+            { id: 26, name: "3D藍色水晶風", desc: "以高透明度的玻璃質感呈現物件，重點是強烈鏡面高光、折射/透光與乾淨背景來凸顯「晶透」與立體厚度。若用 Glassmorphism 的語彙來描述，核心是「半透明＋層次深度」，常見手法包含透明度控制、邊緣描邊/漸層來強化玻璃厚度感。[nngroup] (建議完整色票：深綠暗部#00674F、更深輪廓#0B3D2E、偏青反光#CFFFE8、背景灰#D9D9D9、高光白#FFFFFF)", primary: "#50C878", accent: "#39FF14", primaryName: "祖母綠", accentName: "螢光亮綠" }
         ];
 
         // 受眾選項
@@ -207,11 +208,22 @@
             "高階管理層 (C-Level Executives)"
         ];
 
+        // 溝通目標選項 (新增)
+        const goalOptions = [
+            { id: 1, text: "快速掌握核心邏輯" },
+            { id: 2, text: "30秒內掌握核心邏輯" },
+            { id: 3, text: "呈現年度增長趨勢" },
+            { id: 4, text: "詳盡解釋操作步驟" },
+            { id: 5, text: "比較兩者優劣差異" },
+            { id: 6, text: "激發觀眾興趣與好奇" },
+        ];
+
         // 預設表單資料
         const initialForm = {
             chartType: "流程圖 (Flowchart)",
             audience: "資訊及資安人員 (IT & InfoSec)",
-            goal: "30秒內掌握核心邏輯",
+            goalId: 1, // 預設為 "快速掌握核心邏輯"
+            customGoal: "",
             styleId: 3, 
             customStyleName: "",
             customStyleDesc: "",
@@ -257,13 +269,28 @@
                 setFormData(prev => ({ ...prev, [name]: value }));
             };
 
+            const handleGoalChange = (e) => {
+                const newGoalId = parseInt(e.target.value);
+                setFormData(prev => ({ ...prev, goalId: newGoalId }));
+            };
+
             // 自動生成提示詞邏輯
             useEffect(() => {
-                const isCustom = formData.styleId === 0;
+                // 1. 處理目標 (Goal)
+                let finalGoal = "";
+                if (formData.goalId === 0) {
+                    finalGoal = formData.customGoal || "請輸入自訂目標";
+                } else {
+                    const selectedOption = goalOptions.find(g => g.id === formData.goalId);
+                    finalGoal = selectedOption ? selectedOption.text : "快速掌握核心邏輯";
+                }
+
+                // 2. 處理風格 (Style)
+                const isCustomStyle = formData.styleId === 0;
                 let styleInfo = "";
                 let colorInfo = "";
 
-                if (isCustom) {
+                if (isCustomStyle) {
                     styleInfo = `${formData.customStyleName || "自定義風格"}：${formData.customStyleDesc || "使用者自訂設定"}。`;
                     colorInfo = `- 主色 (Primary)：${formData.customPrimary}\n- 輔助色 (Accent)：${formData.customAccent}`;
                 } else {
@@ -279,7 +306,7 @@
                 const prompt = `請製作一張資訊圖表或一份簡報投影片，長寬為16：9。
 
 1. 目標受眾與溝通目標：
-受眾為「${formData.audience}」，目標是「${formData.goal}」。
+受眾為「${formData.audience}」，目標是「${finalGoal}」。
 
 2. 具體視覺風格：
 ${styleInfo}
@@ -375,14 +402,31 @@ ${colorInfo}
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-1">溝通目標</label>
-                                        <input 
-                                            type="text" 
-                                            name="goal"
-                                            value={formData.goal}
-                                            onChange={handleChange}
-                                            className="w-full p-2.5 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                                            placeholder="例如：快速呈現年度增長趨勢"
-                                        />
+                                        <select 
+                                            name="goalId" 
+                                            value={formData.goalId}
+                                            onChange={handleGoalChange}
+                                            className="w-full p-2.5 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition mb-2"
+                                        >
+                                            <option value="0">0. ★ 自行定義 (Custom)</option>
+                                            {goalOptions.map(opt => (
+                                                <option key={opt.id} value={opt.id}>
+                                                    {opt.id}. {opt.text}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        
+                                        {/* 自訂目標輸入框 (僅在選擇自訂時顯示) */}
+                                        {formData.goalId === 0 && (
+                                            <input 
+                                                type="text" 
+                                                name="customGoal"
+                                                value={formData.customGoal}
+                                                onChange={handleChange}
+                                                className="w-full p-2.5 bg-gray-900 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition animate-fadeIn"
+                                                placeholder="請輸入您的自訂目標..."
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             </div>
