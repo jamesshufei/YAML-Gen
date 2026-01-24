@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook LM-資訊圖表及簡報提示詞生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: #111827; /* gray-900 */
+            color: #f3f4f6; /* gray-100 */
+        }
+
+        /* 自訂捲軸 (深色版) */
+        .preview-area { scrollbar-width: thin; scrollbar-color: #4b5563 #1f2937; }
+        .preview-area::-webkit-scrollbar { width: 8px; }
+        .preview-area::-webkit-scrollbar-track { background: #1f2937; }
+        .preview-area::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 4px; }
+
+        /* 色票輸入框優化 - 修復點擊範圍問題 */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 100%; /* 改為 100% 以適應父容器大小 */
+            height: 100%; /* 改為 100% 以適應父容器大小 */
+            padding: 0;
+            overflow: hidden;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0; 
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none; /* 移除預設邊框，改由父容器控制 */
+            border-radius: 50%;
+        }
+
+        /* 列印樣式 (PDF輸出用) */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-prompt, #printable-prompt * {
+                visibility: visible;
+                color: black; /* 列印時強制黑字 */
+            }
+            #printable-prompt {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+                padding: 40px;
+                font-size: 14pt;
+                white-space: pre-wrap;
+                font-family: 'Noto Sans TC', monospace;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 內建圖標元件 (SVG) ---
+        const IconWrapper = ({ children, color = "currentColor", ...props }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                {children}
+            </svg>
+        );
+
+        const Sparkles = (props) => (
+            <IconWrapper {...props}>
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+            </IconWrapper>
+        );
+
+        const Users = (props) => (
+            <IconWrapper {...props}>
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </IconWrapper>
+        );
+
+        const Palette = (props) => (
+            <IconWrapper {...props}>
+                <circle cx="13.5" cy="6.5" r=".5" fill={props.color}/>
+                <circle cx="17.5" cy="10.5" r=".5" fill={props.color}/>
+                <circle cx="8.5" cy="7.5" r=".5" fill={props.color}/>
+                <circle cx="6.5" cy="12.5" r=".5" fill={props.color}/>
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+            </IconWrapper>
+        );
+
+        const Layout = (props) => (
+            <IconWrapper {...props}>
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                <line x1="3" x2="21" y1="9" y2="9" />
+                <line x1="9" x2="9" y1="9" y2="21" />
+            </IconWrapper>
+        );
+
+        const Type = (props) => (
+            <IconWrapper {...props}>
+                <polyline points="4 7 4 4 20 4 20 7" />
+                <line x1="9" x2="15" y1="20" y2="20" />
+                <line x1="12" x2="12" y1="4" y2="20" />
+            </IconWrapper>
+        );
+
+        const FileText = (props) => (
+            <IconWrapper {...props}>
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" x2="8" y1="13" y2="13" />
+                <line x1="16" x2="8" y1="17" y2="17" />
+                <line x1="10" x2="8" y1="9" y2="9" />
+            </IconWrapper>
+        );
+
+        const MessageSquare = (props) => (
+            <IconWrapper {...props}>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </IconWrapper>
+        );
+
+        const Copy = (props) => (
+            <IconWrapper {...props}>
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+            </IconWrapper>
+        );
+
+        const Check = (props) => (
+            <IconWrapper {...props}>
+                <polyline points="20 6 9 17 4 12" />
+            </IconWrapper>
+        );
+
+        const Download = (props) => (
+            <IconWrapper {...props}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" x2="12" y1="15" y2="3" />
+            </IconWrapper>
+        );
+
+        const Printer = (props) => (
+             <IconWrapper {...props}>
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+            </IconWrapper>
+        );
+        // --- End of Icons ---
+
+        // 視覺風格資料庫 (完整 26 種風格)
+        const visualStyles = [
+            { id: 1, name: "現代日系漫畫感 (手繪風)", desc: "採用漫畫分鏡與手繪風格，製作寬螢幕資訊圖表，字跡呈現流暢的手寫筆觸，視覺對比強烈", primary: "#FFFFFF", accent: "#000000", primaryName: "純白", accentName: "墨黑" },
+            { id: 2, name: "現代黃金奢華風", desc: "具有黃金質感，主體表面有強烈鏡面高光與細緻顆粒反射，呈現「金屬光澤＋微觀質地」。(建議搭配：古銅金#B46F16、深棕黑#331504、高光香檳金#F5C96C等)", primary: "#E4AB42", accent: "#DB9318", primaryName: "深金棕陰影", accentName: "琥珀金" },
+            { id: 3, name: "黑板手寫粉筆風", desc: "以深綠色為底，模擬白、黃、粉紅粉筆字體，具親切感", primary: "#1A3A32", accent: "#FFF44F", primaryName: "深墨綠", accentName: "粉筆黃" },
+            { id: 4, name: "俐落時尚白色背景", desc: "簡潔、高對比，用於將枯澀數據轉化為震撼視覺", primary: "#FFFFFF", accent: "#0363A7", primaryName: "極簡白", accentName: "專業藍" },
+            { id: 5, name: "數位普普風格", desc: "多用變形蟲等有機形狀，配色活潑（粉、青、紫）", primary: "#FF007F", accent: "#00FFFF", primaryName: "活力粉", accentName: "電漿青" },
+            { id: 6, name: "運動能量風格", desc: "強調「疾走感」，常用瀝青黑搭配螢光萊姆綠", primary: "#222222", accent: "#CCFF00", primaryName: "瀝青黑", accentName: "螢光萊姆" },
+            { id: 7, name: "古典普普風格", desc: "融合石膏像與現代元素（如VR、珍奶），具文化衝擊感", primary: "#D3D3D3", accent: "#FFD700", primaryName: "雕像灰", accentName: "亮金黃" },
+            { id: 8, name: "現代雜誌風格", desc: "無邊框設計，強調利用「負空間」展現高級感", primary: "#1A1A1A", accent: "#FFFFFF", primaryName: "冷酷黑", accentName: "高光白" },
+            { id: 9, name: "材質風格 (Stone)", desc: "模擬清水模質感，結合虛化磨砂玻璃", primary: "#A9A9A9", accent: "#F0F0F0", primaryName: "石材灰", accentName: "磨砂白" },
+            { id: 10, name: "一筆畫水彩風格", desc: "極簡線條搭配莫蘭迪色系，呈現優雅文藝感", primary: "#B1A296", accent: "#D4C4B7", primaryName: "莫蘭迪灰", accentName: "暖沙色" },
+            { id: 11, name: "日式和風風格", desc: "和紙質感背景，點綴金箔與傳統紋樣", primary: "#F5F5DC", accent: "#D4AF37", primaryName: "和紙米", accentName: "古典金" },
+            { id: 12, name: "霓虹拼貼風格", desc: "懷舊米色稿紙為底，疊加高飽和螢光幾何圖形", primary: "#F5F5DC", accent: "#EAFF00", primaryName: "米色稿紙", accentName: "霓虹黃" },
+            { id: 13, name: "裝置模型風格", desc: "以高品質電子設備（iPad/iPhone）模型為主角呈現內容", primary: "#FFFFFF", accent: "#C0C0C0", primaryName: "潔淨白", accentName: "銀屬色" },
+            { id: 14, name: "3D 數位城市風格", desc: "模擬 SimCity 般的等角視圖（Isometric），具科技俯瞰感", primary: "#1E90FF", accent: "#708090", primaryName: "科技藍", accentName: "板岩灰" },
+            { id: 15, name: "復古未來等角投影", desc: "Z型視覺流向的 3D 路徑，結合 80 年代復古配色", primary: "#1B1464", accent: "#F7931E", primaryName: "深邃藍", accentName: "復古橘" },
+            { id: 16, name: "聖誕主題風格", desc: "全面套用節慶元素（松針、雪花、禮物盒）", primary: "#C41E3A", accent: "#006400", primaryName: "聖誕紅", accentName: "常青綠" },
+            { id: 17, name: "活力數位風", desc: "使用手繪感圖示與圓角設計，消除科技冷感", primary: "#00A8E8", accent: "#FFCC00", primaryName: "鮮明藍", accentName: "陽光黃" },
+            { id: 18, name: "質感系美學", desc: "炭灰色與泥土色調，傳遞穩重、專業與有機質感", primary: "#333333", accent: "#8B4513", primaryName: "炭炭灰", accentName: "泥土褐" },
+            { id: 19, name: "前衛構築風格", desc: "深黑背景配上極細線條（Hairline），標註解剖細節", primary: "#121212", accent: "#00F3FF", primaryName: "構築黑", accentName: "霓虹青" },
+            { id: 20, name: "工業簡約風", desc: "強調水泥、鋼鐵等硬質表面質感，適合製造業或工程主題", primary: "#808080", accent: "#4682B4", primaryName: "工業灰", accentName: "鋼鐵藍" },
+            { id: 21, name: "文青質感美學", desc: "阿爾卑斯白或沙褐背景，搭配襯線字體，適合生活風格", primary: "#F8F8FF", accent: "#C2B280", primaryName: "阿爾卑斯白", accentName: "沙漠沙" },
+            { id: 22, name: "白板馬克筆風格", desc: "呈現白板腦力激盪風格，利用粗獷且多彩的馬克筆筆跡；背景為亮白色板質感", primary: "#FFFFFF", accent: "#0000FF", primaryName: "白板色", accentName: "馬克筆藍" },
+            { id: 23, name: "手繪塗鴉風格", desc: "視覺採用手繪素描風格，融入筆記本上的塗鴉感；利用鉛筆輪廓線與紙張紋理背景", primary: "#F0EAD6", accent: "#404040", primaryName: "紙張米", accentName: "鉛筆灰" },
+            { id: 24, name: "數據儀表板風", desc: "視覺呈現為現代化的數據儀表板介面，包含乾淨的數據組件如圖表與曲線圖", primary: "#1F2937", accent: "#10B981", primaryName: "深灰底", accentName: "數據綠" },
+            { id: 25, name: "復古報紙風格", desc: "視覺採用1950年代復古海報風格，背景為帶有摺痕與微黃舊紙感的紋理", primary: "#F4E4C1", accent: "#2C2C2C", primaryName: "舊紙黃", accentName: "油墨黑" },
+            { id: 26, name: "3D藍色水晶風", desc: "以高透明度的玻璃質感呈現物件，重點是強烈鏡面高光、折射/透光與乾淨背景來凸顯「晶透」與立體厚度。若用 Glassmorphism 的語彙來描述，核心是「半透明＋層次深度」，常見手法包含透明度控制、邊緣描邊/漸層來強化玻璃厚度感。[nngroup] (建議完整色票：深綠暗部#00674F、更深輪廓#0B3D2E、偏青反光#CFFFE8、背景灰#D9D9D9、高光白#FFFFFF)", primary: "#50C878", accent: "#39FF14", primaryName: "祖母綠", accentName: "螢光亮綠" }
+        ];
+
+        // 受眾選項
+        const audienceOptions = [
+            "資訊及資安人員 (IT & InfoSec)",
+            "新進員工 (New Employees)",
+            "投資決策者 (Investors)",
+            "一般大眾 (General Public)",
+            "專業技術人員 (Technical Experts)",
+            "學生與教育工作者 (Students/Educators)",
+            "行銷與業務團隊 (Marketing/Sales)",
+            "高階管理層 (C-Level Executives)"
+        ];
+
+        // 溝通目標選項 (新增)
+        const goalOptions = [
+            { id: 1, text: "快速掌握核心邏輯" },
+            { id: 2, text: "30秒內掌握核心邏輯" },
+            { id: 3, text: "呈現年度增長趨勢" },
+            { id: 4, text: "詳盡解釋操作步驟" },
+            { id: 5, text: "比較兩者優劣差異" },
+            { id: 6, text: "激發觀眾興趣與好奇" },
+        ];
+
+        // 預設表單資料
+        const initialForm = {
+            chartType: "流程圖 (Flowchart)",
+            audience: "資訊及資安人員 (IT & InfoSec)",
+            goalId: 1, // 預設為 "快速掌握核心邏輯"
+            customGoal: "",
+            styleId: 3, 
+            customStyleName: "",
+            customStyleDesc: "",
+            layout: "直向 (Portrait) 佈局，採垂直流向",
+            // 簡報內容限制預設值
+            slideBulletLimit: 5,
+            bulletCharLimit: 20,
+            paragraphLineLimit: 8, // 修正為 8
+            // 顏色自訂
+            customPrimary: "#FFFFFF",
+            customAccent: "#0363A7",
+            // 字體設定 (修正預設值)
+            h1Size: "特大 (36px)",
+            h1Color: "#222222",
+            h2Size: "大 (24px)",
+            h2Color: "#444444",
+            bodySize: "中等 (18px)",
+            bodyColor: "#555555"
+        };
+
+        const App = () => {
+            const [formData, setFormData] = useState(initialForm);
+            const [generatedPrompt, setGeneratedPrompt] = useState("");
+            const [copySuccess, setCopySuccess] = useState(false);
+
+            // 當風格改變時
+            const handleStyleChange = (e) => {
+                const newStyleId = parseInt(e.target.value);
+                setFormData(prev => {
+                    const newState = { ...prev, styleId: newStyleId };
+                    // 只有當不是自定義風格時，才自動帶入顏色
+                    if (newStyleId !== 0) {
+                        const style = visualStyles.find(s => s.id === newStyleId);
+                        newState.customPrimary = style.primary;
+                        newState.customAccent = style.accent;
+                    }
+                    return newState;
+                });
+            };
+
+            const handleChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({ ...prev, [name]: value }));
+            };
+
+            const handleGoalChange = (e) => {
+                const newGoalId = parseInt(e.target.value);
+                setFormData(prev => ({ ...prev, goalId: newGoalId }));
+            };
+
+            // 自動生成提示詞邏輯
+            useEffect(() => {
+                // 1. 處理目標 (Goal)
+                let finalGoal = "";
+                if (formData.goalId === 0) {
+                    finalGoal = formData.customGoal || "請輸入自訂目標";
+                } else {
+                    const selectedOption = goalOptions.find(g => g.id === formData.goalId);
+                    finalGoal = selectedOption ? selectedOption.text : "快速掌握核心邏輯";
+                }
+
+                // 2. 處理風格 (Style)
+                const isCustomStyle = formData.styleId === 0;
+                let styleInfo = "";
+                let colorInfo = "";
+
+                if (isCustomStyle) {
+                    styleInfo = `${formData.customStyleName || "自定義風格"}：${formData.customStyleDesc || "使用者自訂設定"}。`;
+                    colorInfo = `- 主色 (Primary)：${formData.customPrimary}\n- 輔助色 (Accent)：${formData.customAccent}`;
+                } else {
+                    const style = visualStyles.find(s => s.id === parseInt(formData.styleId));
+                    // 檢查顏色是否未被修改，若是則帶入色名
+                    const pName = (formData.customPrimary.toLowerCase() === style.primary.toLowerCase()) ? ` (${style.primaryName})` : "";
+                    const aName = (formData.customAccent.toLowerCase() === style.accent.toLowerCase()) ? ` (${style.accentName})` : "";
+                    
+                    styleInfo = `${style.name}：${style.desc}。`;
+                    colorInfo = `- 色票 (色名)：主色 ${formData.customPrimary}${pName}、輔助色 ${formData.customAccent}${aName}。`;
+                }
+                
+                const prompt = `請製作一張資訊圖表或一份簡報投影片，長寬為16：9。
+
+1. 目標受眾與溝通目標：
+受眾為「${formData.audience}」，目標是「${finalGoal}」。
+
+2. 具體視覺風格：
+${styleInfo}
+${colorInfo}
+- 文字設定：
+  - 標題 (H1)：大小 [${formData.h1Size}], 顏色 [${formData.h1Color}]
+  - 副標題 (H2)：大小 [${formData.h2Size}], 顏色 [${formData.h2Color}]
+  - 內文 (Body)：大小 [${formData.bodySize}], 顏色 [${formData.bodyColor}]
+
+3. 排版架構：
+採用「${formData.chartType}」形式呈現，版面配置為「${formData.layout}」，請增加負空間（留白）確保可讀性。
+
+4. 內容架構與精確限制：
+- 每張投影片/版面條例上限：${formData.slideBulletLimit} 點
+- 每條條列文字數上限：${formData.bulletCharLimit} 字
+- 單一段落最多行數：${formData.paragraphLineLimit} 行
+- 內容密度規則：每張投影片僅包含一個主要概念，條列不超過上限，必要時拆成多張。
+- 請以「動詞」開頭撰寫要點。`;
+
+                setGeneratedPrompt(prompt);
+                setCopySuccess(false);
+            }, [formData]);
+
+            const copyToClipboard = () => {
+                const textarea = document.createElement("textarea");
+                textarea.value = generatedPrompt;
+                textarea.style.position = "fixed";
+                textarea.style.left = "-9999px";
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    setCopySuccess(true);
+                    setTimeout(() => setCopySuccess(false), 2000);
+                } catch (err) {
+                    console.error('複製失敗: ', err);
+                }
+                document.body.removeChild(textarea);
+            };
+
+            const downloadTxt = () => {
+                const blob = new Blob([generatedPrompt], { type: "text/plain" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `notebooklm_prompt_${new Date().toISOString().slice(0,10)}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            const downloadPDF = () => {
+                window.print();
+            };
+
+            return (
+                <div className="min-h-screen pb-12">
+                    <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-10 shadow-lg">
+                        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-md">
+                                    <Sparkles size={24} color="#fff" />
+                                </div>
+                                <h1 className="text-xl md:text-2xl font-bold text-gray-100 tracking-wide">Notebook LM-資訊圖表及簡報提示詞生成器</h1>
+                            </div>
+                            <button 
+                                onClick={() => window.open('color.html', '_blank')}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors border border-gray-600 text-sm"
+                            >
+                                <Palette size={18} />
+                                開啟配色表
+                            </button>
+                        </div>
+                    </header>
+
+                    <main className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+                        
+                        {/* 左側：設定面板 */}
+                        <div className="lg:col-span-6 space-y-6">
+                            
+                            {/* 1. 基本資訊 */}
+                            <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 transition hover:border-gray-600">
+                                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-blue-400 border-b border-gray-700 pb-2">
+                                    <Users size={20} color="#60a5fa" />
+                                    1. 受眾與目標 (Context)
+                                </h2>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">目標受眾</label>
+                                        <select 
+                                            name="audience" 
+                                            value={formData.audience}
+                                            onChange={handleChange}
+                                            className="w-full p-2.5 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                                        >
+                                            {audienceOptions.map((opt, idx) => (
+                                                <option key={idx} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">溝通目標</label>
+                                        <select 
+                                            name="goalId" 
+                                            value={formData.goalId}
+                                            onChange={handleGoalChange}
+                                            className="w-full p-2.5 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition mb-2"
+                                        >
+                                            <option value="0">0. ★ 自行定義 (Custom)</option>
+                                            {goalOptions.map(opt => (
+                                                <option key={opt.id} value={opt.id}>
+                                                    {opt.id}. {opt.text}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        
+                                        {/* 自訂目標輸入框 (僅在選擇自訂時顯示) */}
+                                        {formData.goalId === 0 && (
+                                            <input 
+                                                type="text" 
+                                                name="customGoal"
+                                                value={formData.customGoal}
+                                                onChange={handleChange}
+                                                className="w-full p-2.5 bg-gray-900 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition animate-fadeIn"
+                                                placeholder="請輸入您的自訂目標..."
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 2. 視覺風格 (核心功能) */}
+                            <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 transition hover:border-gray-600">
+                                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-pink-400 border-b border-gray-700 pb-2">
+                                    <Palette size={20} color="#f472b6" />
+                                    2. 視覺風格 (Visual Style)
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">選擇風格</label>
+                                        <select 
+                                            name="styleId" 
+                                            value={formData.styleId} 
+                                            onChange={handleStyleChange}
+                                            className="w-full p-2.5 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none transition"
+                                        >
+                                            <option value="0">0. ★ 自行定義 (Custom)</option>
+                                            {visualStyles.map(style => (
+                                                <option key={style.id} value={style.id}>
+                                                    {style.id}. {style.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* 自訂風格欄位 (僅在選擇自訂時顯示) */}
+                                    {formData.styleId === 0 && (
+                                        <div className="grid grid-cols-1 gap-4 p-4 bg-gray-700/50 rounded-lg border border-gray-600 animate-fadeIn">
+                                            <div>
+                                                <label className="block text-xs font-medium text-pink-300 mb-1">自訂風格名稱</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="customStyleName"
+                                                    value={formData.customStyleName}
+                                                    onChange={handleChange}
+                                                    className="w-full p-2 bg-gray-900 border border-gray-600 text-white rounded focus:border-pink-500 outline-none"
+                                                    placeholder="例如：賽博龐克霓虹風"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-pink-300 mb-1">自訂風格描述</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="customStyleDesc"
+                                                    value={formData.customStyleDesc}
+                                                    onChange={handleChange}
+                                                    className="w-full p-2 bg-gray-900 border border-gray-600 text-white rounded focus:border-pink-500 outline-none"
+                                                    placeholder="例如：高科技感，充滿故障藝術元素"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 可互動色票 */}
+                                    <div className="bg-gray-700/30 rounded-lg p-4 border border-gray-600">
+                                        <div className="flex flex-col sm:flex-row gap-6 items-center">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="relative group cursor-pointer hover:scale-105 transition w-16 h-16 rounded-full shadow-lg border-2 border-gray-500 overflow-hidden" style={{ backgroundColor: formData.customPrimary }}>
+                                                    <input 
+                                                        type="color" 
+                                                        name="customPrimary" 
+                                                        value={formData.customPrimary} 
+                                                        onChange={handleChange}
+                                                        className="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer"
+                                                    />
+                                                </div>
+                                                <div className="text-center">
+                                                    <span className="text-xs font-bold text-gray-300 block">主色</span>
+                                                    <span className="text-xs font-mono text-gray-400 block">{formData.customPrimary}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="relative group cursor-pointer hover:scale-105 transition w-16 h-16 rounded-full shadow-lg border-2 border-gray-500 overflow-hidden" style={{ backgroundColor: formData.customAccent }}>
+                                                    <input 
+                                                        type="color" 
+                                                        name="customAccent" 
+                                                        value={formData.customAccent} 
+                                                        onChange={handleChange}
+                                                        className="opacity-0 w-full h-full absolute top-0 left-0 cursor-pointer"
+                                                    />
+                                                </div>
+                                                <div className="text-center">
+                                                    <span className="text-xs font-bold text-gray-300 block">輔助色</span>
+                                                    <span className="text-xs font-mono text-gray-400 block">{formData.customAccent}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1 border-l pl-6 border-gray-600">
+                                                <h3 className="font-bold text-gray-200">
+                                                    {formData.styleId === 0 ? (formData.customStyleName || "自定義風格") : visualStyles.find(s => s.id === parseInt(formData.styleId))?.name}
+                                                </h3>
+                                                <p className="text-sm text-gray-400 mt-1">
+                                                    {formData.styleId === 0 ? (formData.customStyleDesc || "自定義描述") : visualStyles.find(s => s.id === parseInt(formData.styleId))?.desc}
+                                                </p>
+                                                <p className="text-xs text-pink-300 mt-2 inline-block bg-pink-900/30 px-2 py-1 rounded border border-pink-900/50">
+                                                    提示：點擊色塊可更改顏色
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3. 文字設定 */}
+                            <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 transition hover:border-gray-600">
+                                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-yellow-400 border-b border-gray-700 pb-2">
+                                    <Type size={20} color="#facc15" />
+                                    3. 文字設定 (Typography)
+                                </h2>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {/* H1 */}
+                                    <div className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+                                        <span className="font-bold text-gray-300 w-24">H1 標題</span>
+                                        <select name="h1Size" value={formData.h1Size} onChange={handleChange} className="p-2 bg-gray-900 border border-gray-600 text-white rounded text-sm flex-1 outline-none">
+                                            <option value="特大 (36px)">特大 (36px)</option>
+                                            <option value="大 (28px)">大 (28px)</option>
+                                            <option value="中 (24px)">中 (24px)</option>
+                                        </select>
+                                        <div className="flex items-center gap-2 relative">
+                                            <div className="w-8 h-8 rounded border border-gray-500 overflow-hidden" style={{backgroundColor: formData.h1Color}}>
+                                                <input type="color" name="h1Color" value={formData.h1Color} onChange={handleChange} className="opacity-0 w-full h-full cursor-pointer" />
+                                            </div>
+                                            <span className="text-xs font-mono text-gray-400 w-16">{formData.h1Color}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* H2 */}
+                                    <div className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+                                        <span className="font-bold text-gray-300 w-24">H2 副標題</span>
+                                        <select name="h2Size" value={formData.h2Size} onChange={handleChange} className="p-2 bg-gray-900 border border-gray-600 text-white rounded text-sm flex-1 outline-none">
+                                            <option value="大 (24px)">大 (24px)</option>
+                                            <option value="中等 (18px)">中等 (18px)</option>
+                                            <option value="小 (16px)">小 (16px)</option>
+                                        </select>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded border border-gray-500 overflow-hidden" style={{backgroundColor: formData.h2Color}}>
+                                                <input type="color" name="h2Color" value={formData.h2Color} onChange={handleChange} className="opacity-0 w-full h-full cursor-pointer" />
+                                            </div>
+                                            <span className="text-xs font-mono text-gray-400 w-16">{formData.h2Color}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Body */}
+                                    <div className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+                                        <span className="font-bold text-gray-300 w-24">內文</span>
+                                        <select name="bodySize" value={formData.bodySize} onChange={handleChange} className="p-2 bg-gray-900 border border-gray-600 text-white rounded text-sm flex-1 outline-none">
+                                            <option value="中等 (18px)">中等 (18px)</option>
+                                            <option value="一般 (16px)">一般 (16px)</option>
+                                            <option value="精細 (14px)">精細 (14px)</option>
+                                        </select>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded border border-gray-500 overflow-hidden" style={{backgroundColor: formData.bodyColor}}>
+                                                <input type="color" name="bodyColor" value={formData.bodyColor} onChange={handleChange} className="opacity-0 w-full h-full cursor-pointer" />
+                                            </div>
+                                            <span className="text-xs font-mono text-gray-400 w-16">{formData.bodyColor}</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-yellow-500/80 mt-1">* 建議使用中性色系以維持閱讀舒適度。</p>
+                                </div>
+                            </div>
+
+                            {/* 4. 類型與排版 */}
+                            <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 transition hover:border-gray-600">
+                                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-green-400 border-b border-gray-700 pb-2">
+                                    <Layout size={20} color="#4ade80" />
+                                    4. 類型與排版 (Type & Layout)
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">圖表類型</label>
+                                        <select 
+                                            name="chartType" 
+                                            value={formData.chartType}
+                                            onChange={handleChange}
+                                            className="w-full p-2.5 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+                                        >
+                                            <option value="流程圖 (Flowchart)">流程圖 (Flowchart)</option>
+                                            <option value="比較表 (Comparison Table)">比較表 (Comparison Table)</option>
+                                            <option value="統計數據圖 (Stats Chart)">統計數據圖 (Stats Chart)</option>
+                                            <option value="折線圖 (Line Chart)">折線圖 (Line Chart)</option>
+                                            <option value="心智圖 (Mind Map)">心智圖 (Mind Map)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">排版架構</label>
+                                        <select 
+                                            name="layout" 
+                                            value={formData.layout}
+                                            onChange={handleChange}
+                                            className="w-full p-2.5 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition"
+                                        >
+                                            <option value="直向 (Portrait) 佈局，採垂直流向">直向 (Portrait) - 垂直流向</option>
+                                            <option value="橫向 (Landscape) 佈局，採 Z 型流向">橫向 (Landscape) - Z 型流向</option>
+                                            <option value="橫向 (Landscape) 佈局，採中央發散">橫向 (Landscape) - 中央發散</option>
+                                            <option value="方形 (Square) 佈局，強調中心重點">方形 (Square) - 適合社群</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 5. 內容限制 (Content Constraints) */}
+                            <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 transition hover:border-gray-600">
+                                <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-purple-400 border-b border-gray-700 pb-2">
+                                    <FileText size={20} color="#c084fc" />
+                                    5. 內容限制 (Content Constraints)
+                                </h2>
+                                <div className="space-y-4">
+                                    <div className="p-3 bg-purple-900/20 border border-purple-800/50 rounded text-sm text-purple-200 mb-2">
+                                        <p className="font-bold mb-1 text-purple-300">內容密度規則：</p>
+                                        <p>每張投影片僅包含一個主要概念，條列不超過上限，必要時拆成多張。</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-400 mb-1">每頁條列上限 (點)</label>
+                                            <input type="number" name="slideBulletLimit" value={formData.slideBulletLimit} onChange={handleChange} className="w-full p-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:border-purple-500 outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-400 mb-1">每條字數上限 (字)</label>
+                                            <input type="number" name="bulletCharLimit" value={formData.bulletCharLimit} onChange={handleChange} className="w-full p-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:border-purple-500 outline-none" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-400 mb-1">段落行數上限 (行)</label>
+                                            <input type="number" name="paragraphLineLimit" value={formData.paragraphLineLimit} onChange={handleChange} className="w-full p-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:border-purple-500 outline-none" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* 右側：生成結果面板 (Sticky) */}
+                        <div className="lg:col-span-6">
+                            <div className="sticky top-24 space-y-4">
+                                <div className="bg-gray-800 text-white rounded-xl shadow-lg border border-gray-700 overflow-hidden flex flex-col h-[600px]">
+                                    <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900">
+                                        <h3 className="font-semibold flex items-center gap-2 text-green-400">
+                                            <MessageSquare size={18} color="#4ade80" />
+                                            生成的 Prompt
+                                        </h3>
+                                        <span className="text-xs text-gray-400 bg-gray-800 border border-gray-700 px-2 py-1 rounded">可直接貼入 NotebookLM</span>
+                                    </div>
+                                    
+                                    <div id="printable-prompt" className="flex-1 p-6 overflow-y-auto font-mono text-sm leading-relaxed text-gray-300 whitespace-pre-wrap preview-area bg-gray-800">
+                                        {generatedPrompt}
+                                    </div>
+
+                                    <div className="p-4 bg-gray-900 border-t border-gray-700 grid grid-cols-3 gap-3">
+                                        <button 
+                                            onClick={copyToClipboard}
+                                            className={`flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all col-span-1 ${
+                                                copySuccess 
+                                                ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-900/20' 
+                                                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-900/20'
+                                            }`}
+                                        >
+                                            {copySuccess ? <Check size={18} /> : <Copy size={18} />}
+                                            {copySuccess ? 'OK' : '複製'}
+                                        </button>
+                                        <button 
+                                            onClick={downloadTxt}
+                                            className="flex items-center justify-center gap-2 bg-gray-700 text-white py-3 px-4 rounded-lg hover:bg-gray-600 font-medium transition-all border border-gray-600 col-span-1"
+                                        >
+                                            <Download size={18} />
+                                            .txt
+                                        </button>
+                                        <button 
+                                            onClick={downloadPDF}
+                                            className="flex items-center justify-center gap-2 bg-gray-700 text-white py-3 px-4 rounded-lg hover:bg-gray-600 font-medium transition-all border border-gray-600 col-span-1"
+                                        >
+                                            <Printer size={18} />
+                                            .pdf
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="bg-blue-900/30 border border-blue-800/50 p-4 rounded-xl text-sm text-blue-300 shadow-lg">
+                                    <p className="font-bold mb-1 text-blue-200">💡 小技巧</p>
+                                    <p>若生成的圖表文字有錯但風格滿意，請保留這段提示詞，僅在 NotebookLM 的「來源」中微調文字內容，進行「重抽」即可。</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
